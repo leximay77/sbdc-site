@@ -55,10 +55,11 @@ def process_events(cal, month: int, year: int, do_cache=False, logger=None):
     global EVENTS_DB
     events = []
     for cal_event in read_events(cal, month, year, logger):
-        uid_val = cal_event.get("UID", cal_event.get("SUMMARY", str(cal_event))) + str(cal_event.get("RECURRENCE-ID", ""))
+        uid_val = '|'.join([cal_event.get("UID", cal_event.get("SUMMARY", str(cal_event))), str(cal_event.get("RECURRENCE-ID", "")), str(cache_key(cal_event))])
         uid = sha256(str(uid_val).encode("utf-8")).hexdigest()
         # already in cache
         if EVENTS_DB.get(uid):
+            # sometimes we cache without getting neighborhood
             if EVENTS_DB[uid]["location"] and not EVENTS_DB[uid]["neighborhood"]:
                 EVENTS_DB[uid]["neighborhood"] = get_neighborhood(EVENTS_DB[uid]["location"], logger)
             events.append(EVENTS_DB[uid])
@@ -123,6 +124,16 @@ def process_events(cal, month: int, year: int, do_cache=False, logger=None):
             EVENTS_DB[uid] = event
         events.append(event)
     return events
+
+
+def cache_key(cal_event):
+        return '|'.join([
+            str(fix_datetime(cal_event["DTSTART"])),
+            str(fix_datetime(cal_event.get("DTEND", ""))),
+            str(cal_event.get("LOCATION", "")),
+            str(cal_event.get("SUMMARY", "")),
+            str(cal_event.get("DESCRIPTION", ""))
+        ])
 
 def fix_datetime(vddd):
     if type(vddd) is ical.prop.vDDDTypes:
