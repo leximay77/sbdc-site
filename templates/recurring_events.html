@@ -43,25 +43,124 @@
             max-width: 100%;
         }
     }
+    .recurring-event-link {
+        text-decoration: none;
+    }
+    .recurring-event-link-icon {
+        width: 28px; /* Fixed width */
+        height: 28px; /* Fixed height to maintain aspect ratio */
+        object-fit: cover; /* Ensures the icon fills the container */
+    }
 </style>
 {% endblock %}
 {% block content %}
     <div class="container">
         <h2>Recurring Events</h2>
-        <p>Check out these recurring events in the Seattle area! We're lucky to have amazing instructors, musicians, venues, and dancers here in the Seattle area
+        <p>Check out these recurring events in the Seattle area! We're lucky to have amazing instructors, musicians, DJs, venues, and dancers here in the Seattle area
             who meet up to dance, learn, and share their love of Blues.
         </p>
         <br />
         <ul class="event-list">
             <li class="event-item">
                 <div class="event-content">
-                    <h3><i>What The Blues</i> - Lessons and Workshops @ the Lowdown Ballroom, Capitol Hill</h3>
-                    <p>
-                        <a target="_blank" rel="noopener" href="https://www.whattheblues.dance">whattheblues.dance</a>
+                    <h3>Blues Underground ("BUG") @ Dance Underground in Capitol Hill</h3>
+                    <p>Blues Underground has been Seattle's mainstay social Blues dance night since 2005.
+                        Blues Underground brings in world renowned instructors for workshops, host live
+                        music nights with local bands, and partners with local organizations supporting
+                        Seattle's Black community.
                     </p>
+                    <p>
+                        <br />
+                        <h4>Monthly on the third Friday</h4>
+                        <ul class="event-list">
+                            <li>All-levels drop-in lesson 8:30-9:30pm</li>
+                            <li>DJ'd music from 9:30pm-12am</li>
+                            <li>
+                                <br />
+                                <a target="_blank" rel="noopener" href="https://maps.app.goo.gl/nQqdaKjEZAJ3kSH2A" class="recurring-event-link">
+                                    <img src="{{ url_for('static', filename='images/location.png') }}" alt="Location" class="recurring-event-link-icon" />
+                                </a>
+                                <a target="_blank" rel="noopener" href="https://www.instagram.com/savoys.blues.underground/" class="recurring-event-link">
+                                    <img src="{{ url_for('static', filename='images/instagram-logo.png') }}" alt="Instagram" class="recurring-event-link-icon" />
+                                </a>
+                            </li>
+                        </ul>
+                    </p>
+                </div>
+                <div class="event-media">
+                    <img src="{{ url_for('static', filename='images/bug.jpg') }}" alt="Blues Underground" class="event-image">
+                </div>
+            </li>
+            <li class="event-item">
+                <div class="event-content">
+                    <h3>Biweekly Socials @ Reverie Ballroom in Capitol Hill</h3>
+                    <p>Come to the reopened and beautifully renovated Reverie Ballroom for Wednesday night Blues socials twice a month.
+                        These take place in the Emerald ballroom and feature a short drop-in lesson at the start. Also look out for the
+                        recurring <a target="_blank" rel="noopener" href="https://www.reverieballroom.com/class-calendars">series classes</a>
+                        before these socials, and then practice what you learn on the social floor!
+                    </p>
+                    <p>
+                        <br />
+                        <h4>Second and Fourth Wednesdays of each Month</h4>
+                        <ul class="event-list">
+                            <li>All-levels drop-in lesson 9-9:30pm</li>
+                            <li>DJ'd music from 9:30pm-12am</li>
+                            <li>
+                                <br />
+                                <a target="_blank" rel="noopener" href="https://www.reverieballroom.com">www.reverieballroom.com</a><br />
+                                <a target="_blank" rel="noopener" href="https://maps.app.goo.gl/MGLtWr7ZxC6YiGXJ6" class="recurring-event-link">
+                                    <img src="{{ url_for('static', filename='images/location.png') }}" alt="Location" class="recurring-event-link-icon" />
+                                </a>
+                                <a target="_blank" rel="noopener" href="https://www.instagram.com/reverie_ballroom/" class="recurring-event-link">
+                                    <img src="{{ url_for('static', filename='images/instagram-logo.png') }}" alt="Instagram" class="recurring-event-link-icon" />
+                                </a>
+                            </li>
+                        </ul>
+                    </p>
+                </div>
+                <div class="event-media" style="background: black">
+                    <img src="{{ url_for('static', filename='images/reverie.png') }}" alt="Reverie Ballroom" class="event-image">
+                </div>
+            </li>
+            <li class="event-item">
+                <div class="event-content">
+                    <h3>Hillman City Sway @ Black &amp; Tan Hall in Rainier Valley</h3>
+                    <p>Join us once a month for Hillman City Sway! Presented in partnership with Black &amp; Tan Hall and Blues Underground.
+                        Featuring a swanky evening of local live music, DJ's and dance instructors.
+                    </p>
+                    <p>
+                        <br />
+                        <h4>Monthly on the fourth Thursday</h4>
+                        <ul class="event-list">
+                            <li>Mixer and all-levels drop-in lesson 8-9pm</li>
+                            <li>Band plays 9-11pm</li>
+                            <li>All ages welcome!</li>
+                            <li>
+                                <br />
+                                <a target="_blank" rel="noopener" href="https://www.blackandtanhall.com/">blackandtanhall.com</a><br />
+                                <a target="_blank" rel="noopener" href="https://maps.app.goo.gl/ZvZq8L4dMFLvbJzk6" class="recurring-event-link">
+                                    <img src="{{ url_for('static', filename='images/location.png') }}" alt="Location" class="recurring-event-link-icon" />
+                                </a>
+                                <a target="_blank" rel="noopener" href="https://www.instagram.com/blackandtanhall/" class="recurring-event-link">
+                                    <img src="{{ url_for('static', filename='images/instagram-logo.png') }}" alt="Instagram" class="recurring-event-link-icon" />
+                                </a>
+                                <a target="_blank" rel="noopener" href="https://www.facebook.com/blackandtanhall" class="recurring-event-link">
+                                    <img src="{{ url_for('static', filename='images/facebook-logo.png') }}" alt="Facebook" class="recurring-event-link-icon" />
+                                </a>
+                            </li>
+                        </ul>
+                    </p>
+                </div>
+                <div class="event-media">
+                    <img src="{{ url_for('static', filename='images/hillman.jpg') }}" alt="Hillman City Sway" class="event-image">
+                </div>
+            </li>
+            <li class="event-item">
+                <div class="event-content">
+                    <h3><i>What The Blues</i> @ Lowdown Ballroom in Capitol Hill</h3>
                     <br />
                     <h4>Lesson Series & Drop-Ins</h4>
-                    <p>Our core weekly lessons timeslot is <b>Tuesdays 6:30-8:30pm, at the Lowdown Ballroom</b>. We will
+                    <p>Our core weekly lesson timeslot is <b>Tuesdays 6:30-8:30pm, at the Lowdown Ballroom</b>. We will
                         either have drop-in lessons, or 4- or 5-weeks series, depending on the month. Cancellations or special events
                         occur occasionally, so make sure to check <a href="/">the calendar</a>!</p>
                     <br />
@@ -74,63 +173,22 @@
                     <p>If you're after a more tailored learning experience, we also offer private lessons. Our current rates are $90 - $125 / hr, sliding scale.
                         Please contact us to set up a time!
                     </p>
-                    <br />
                     <p>
-                        <a target="_blank" rel="noopener" href="http://instagram.com/whattheblues_sea">Instagram</a>
-                        <a target="_blank" rel="noopener" href="mailto:dance@whattheblues.com">Email</a>
-                        <a target="_blank" rel="noopener" href="https://maps.app.goo.gl/PYd6FokbwsofJyx98">Location</a>
+                        <br />
+                        <a target="_blank" rel="noopener" href="https://www.whattheblues.dance">whattheblues.dance</a><br />
+                        <a target="_blank" rel="noopener" href="https://maps.app.goo.gl/PYd6FokbwsofJyx98" class="recurring-event-link">
+                            <img src="{{ url_for('static', filename='images/location.png') }}" alt="Location" class="recurring-event-link-icon" />
+                        </a>
+                        <a target="_blank" rel="noopener" href="http://instagram.com/whattheblues_sea" class="recurring-event-link">
+                            <img src="{{ url_for('static', filename='images/instagram-logo.png') }}" alt="Instagram" class="recurring-event-link-icon" />
+                        </a>
+                        <a target="_blank" rel="noopener" href="mailto:dance@whattheblues.com" class="recurring-event-link">
+                            <img src="{{ url_for('static', filename='images/email.png') }}" alt="Email" class="recurring-event-link-icon" />
+                        </a>
                     </p>
                 </div>
                 <div class="event-media">
                     <img src="{{ url_for('static', filename='images/whattheblues.jpg') }}" alt="What The Blues" class="event-image">
-                </div>
-            </li>
-            <li class="event-item">
-                <div class="event-content">
-                    <h3>Hillman City Sway @ the Black and Tan Hall, Hillman City</h3>
-                    <p>Join us once a month for Hillman City Sway! Presented in partnership with Black & Tan Hall and Blues Underground.
-                        Featuring a swanky evening of local live music, DJ's and dance instructors.
-                    </p>
-                    <a target="_blank" rel="noopener" href="https://www.blackandtanhall.com/">blackandtanhall.com</a>
-                    <p>
-                        <br />
-                        <h4>Monthly on the fourth Thursday</h4>
-                        <ul class="event-list">
-                            <li>Mixer and dance lessons 8-9pm</li>
-                            <li>Band plays 9-11pm</li>
-                            <li>All ages welcome!</li>
-                            <li>
-                                <a target="_blank" rel="noopener" href="https://www.instagram.com/blackandtanhall/">Instagram</a>
-                                <a target="_blank" rel="noopener" href="https://www.facebook.com/blackandtanhall">Facebook</a>
-                                <a target="_blank" rel="noopener" href="https://maps.app.goo.gl/ZvZq8L4dMFLvbJzk6">Location</a>
-                            </li>
-                        </ul>
-                    </p>
-                </div>
-                <div class="event-media">
-                    <img src="{{ url_for('static', filename='images/hillman.jpg') }}" alt="Hillman City Sway" class="event-image">
-                </div>
-            </li>
-            <li class="event-item">
-                <div class="event-content">
-                    <h3>Blues Underground ("BUG") @ Dance Underground in Capitol Hill</h3>
-                    <p>Savoy's Blues Underground has been Seattle's mainstay social Blues dance night since 2005.
-                        As a branch of the Savoy Swing Club there have been many who have cared for Blues Underground as director,
-                        instructors, and DJs. As well, Blues Underground brings in world renowned instructors for workshops, host
-                        live music nights with local bands, and partners with local organizations supporting Seattle's Black community.
-                    </p>
-                    <p>
-                        <br />
-                        <h4>Monthly on the third Friday</h4>
-                        <ul class="event-list">
-                            <li>Dance lessons 8:30-9:30pm</li>
-                            <li>DJ'd music from 9:30pm-12am</li>
-                            <li><a target="_blank" rel="noopener" href="https://maps.app.goo.gl/nQqdaKjEZAJ3kSH2A">Location</a></li>
-                        </ul>
-                    </p>
-                </div>
-                <div class="event-media">
-                    <img src="{{ url_for('static', filename='images/bug.jpg') }}" alt="Blues Underground" class="event-image">
                 </div>
             </li>
         </ul>
