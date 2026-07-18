@@ -49,20 +49,12 @@
     }
     .instructor-socials a {
         color: var(--accent-color);
-        text-decoration: none;
-    }
-    .instructor-socials a:hover {
-        text-decoration: underline;
     }
     .instructor-contact {
         margin-top: 1rem;
     }
     .instructor-contact a {
         color: var(--accent-color);
-        text-decoration: none;
-    }
-    .instructor-contact a:hover {
-        text-decoration: underline;
     }
     @media (max-width: 768px) {
         .instructor-content {
@@ -75,12 +67,12 @@
 </style>
 {% endblock %}
 {% block content %}
-    <div class="container">
-        <h2>Instructor Bios</h2>
+    <main class="container">
+        <h1 class="heading-primary bold-underline">Instructor Bios</h1>
         <ul class="instructor-list">
             <li class="instructor-item">
                 <div class="instructor-header">
-                    <h3>Lila Faria (she/her)</h3>
+                    <h2 class="heading-secondary light-underline">Lila Faria (she/her)</h2>
                 </div>
                 <div class="instructor-content">
                     <div class="instructor-bio">
@@ -105,7 +97,7 @@
             </li>
             <li class="instructor-item">
                 <div class="instructor-header">
-                    <h3>Robin Chow (he/him)</h3>
+                    <h2 class="heading-secondary light-underline">Robin Chow (he/him)</h2>
                 </div>
                 <div class="instructor-content">
                     <div class="instructor-bio">
@@ -119,7 +111,7 @@
             </li>
             <li class="instructor-item">
                 <div class="instructor-header">
-                    <h3>Amanda Wanner (she/her)</h3>
+                    <h2 class="heading-secondary light-underline">Amanda Wanner (she/her)</h2>
                 </div>
                 <div class="instructor-content">
                     <div class="instructor-bio">
@@ -136,5 +128,5 @@
                 </div>
             </li>
         </ul>
-    </div>
+    </main>
 {% endblock %}
