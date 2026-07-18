@@ -1,3 +1,5 @@
+@import "footer.css";
+
 :root {
     --primary-color: #1a1a2e;
     --secondary-color: #16213e;
@@ -9,6 +11,7 @@
     --warning-color: #e28743;
     --text-color: #1a1a2e;
     --text-light: #6c757d;
+    --text-on-dark: white;
     --border-radius: 12px;
     --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     --border-color: #e9ecef;
@@ -46,7 +49,7 @@ header {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
+    color: var(--text-on-dark);
     font-size: 1.75rem;
     font-weight: 700;
     letter-spacing: -0.5px;
@@ -201,7 +204,7 @@ html {
 
 .filter-option.active {
     background-color: var(--accent-color);
-    color: white;
+    color: var(--text-on-dark);
     border-color: var(--accent-color);
 }
 
@@ -283,7 +286,7 @@ html {
 
 .event-tag:hover {
     background-color: var(--accent-color);
-    color: white;
+    color: var(--text-on-dark);
 }
 
 .event-description {
@@ -424,7 +427,7 @@ html {
 /* Event States */
 .calendar-day.has-event {
     background-color: var(--accent-color);
-    color: white;
+    color: var(--text-on-dark);
     border-color: var(--accent-color);
 }
 
@@ -804,7 +807,7 @@ ul.flashes {
 
 .newsletter-banner {
     background-color: #2c3e50;
-    color: white;
+    color: var(--text-on-dark);
     text-align: center;
     padding: 8px;
     font-size: 0.9rem;
@@ -815,7 +818,7 @@ ul.flashes {
 }
 
 .newsletter-banner a {
-    color: white;
+    color: var(--text-on-dark);
     text-decoration: none;
     transition: opacity 0.2s ease;
 }
