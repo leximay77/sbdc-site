@@ -49,20 +49,12 @@
     }
     .instructor-socials a {
         color: var(--accent-color);
-        text-decoration: none;
-    }
-    .instructor-socials a:hover {
-        text-decoration: underline;
     }
     .instructor-contact {
         margin-top: 1rem;
     }
     .instructor-contact a {
         color: var(--accent-color);
-        text-decoration: none;
-    }
-    .instructor-contact a:hover {
-        text-decoration: underline;
     }
     @media (max-width: 768px) {
         .instructor-content {
@@ -75,12 +67,12 @@
 </style>
 {% endblock %}
 {% block content %}
-    <div class="container">
-        <h2>Instructor Bios</h2>
+    <main class="container">
+        <h1 class="heading-primary bold-underline">Instructor Bios</h1>
         <ul class="instructor-list">
             <li class="instructor-item">
                 <div class="instructor-header">
-                    <h3>Lila Faria (she/her)</h3>
+                    <h2 class="heading-secondary light-underline">Lila Faria (she/her)</h2>
                 </div>
                 <div class="instructor-content">
                     <div class="instructor-bio">
@@ -99,13 +91,14 @@
                         </div>
                     </div>
                     <div class="instructor-media">
-                        <img src="{{ url_for('static', filename='images/instructors/lila.jpg') }}" alt="Lila Faria" class="instructor-image">
+                        <img src="{{ url_for('static', filename='images/instructors/lila.jpg') }}" alt="Lila Faria" aria-describedby="lila-photo-credit" class="instructor-image">
+                        <p id="lila-photo-credit">Photo credit: <a href="https://www.rachelblivenartanddesign.com/">Rachel Bliven Art and Design</a></p>
                     </div>
                 </div>
             </li>
             <li class="instructor-item">
                 <div class="instructor-header">
-                    <h3>Robin Chow (he/him)</h3>
+                    <h2 class="heading-secondary light-underline">Robin Chow (he/him)</h2>
                 </div>
                 <div class="instructor-content">
                     <div class="instructor-bio">
@@ -119,7 +112,7 @@
             </li>
             <li class="instructor-item">
                 <div class="instructor-header">
-                    <h3>Amanda Wanner (she/her)</h3>
+                    <h2 class="heading-secondary light-underline">Amanda Wanner (she/her)</h2>
                 </div>
                 <div class="instructor-content">
                     <div class="instructor-bio">
@@ -135,6 +128,25 @@
                     </div>
                 </div>
             </li>
+            <li class="instructor-item">
+                <div class="instructor-header">
+                    <h2 class="heading-secondary light-underline">Dillon Arevalo (hi/him)</h2>
+                </div>
+                <div class="instructor-content">
+                    <div class="instructor-bio">
+                        <p>Dillon has been partner dancing since 2007, when his friends bribed him to attend Swing dance classes with cookies, and has
+                            been teaching since 2009. He started dancing Blues in 2010 as a way to better understand connection and closeness within
+                            partner dance. He fell in love with the way two partners in a Blues dance can feel like a single form but still retain so
+                            much individual agency and expression. As a teacher, Dillon tries to understand dance both from a cultural and historical
+                            lens and as a means of artistic co-creation and connection. His chief joys in teaching are discussing and experiencing
+                            dance theory and helping others find what they love about dance.</p>
+                    </div>
+                    <div class="instructor-media">
+                        <img src="{{ url_for('static', filename='images/instructors/dillon.jpg') }}" alt="Dillon Arevalo" aria-describedy="dillon-photo-credit" class="instructor-image">
+                        <p id="dillon-photo-credit">Photo credit: <a href="https://devonrowland.com/">Devon Rowland Photography</a></p>
+                    </div>
+                </div>
+            </li>
         </ul>
-    </div>
+    </main>
 {% endblock %}

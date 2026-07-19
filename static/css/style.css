@@ -1,3 +1,7 @@
+@import "footer.css";
+@import "menu.css";
+@import "calendar.css";
+
 :root {
     --primary-color: #1a1a2e;
     --secondary-color: #16213e;
@@ -8,7 +12,8 @@
     --header-background: color(srgb 0.0518 0.1872 0.3323);
     --warning-color: #e28743;
     --text-color: #1a1a2e;
-    --text-light: #6c757d;
+    --text-light: #6B717B;
+    --text-on-dark: white;
     --border-radius: 12px;
     --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     --border-color: #e9ecef;
@@ -39,6 +44,16 @@ header {
     z-index: 1;
 }
 
+.visually-hidden:not(:focus):not(:active) {
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    height: 1px;
+    overflow: hidden;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
+}
+
 .header-image {
     width: 100%;
     height: 300px;
@@ -46,11 +61,23 @@ header {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
+    color: var(--text-on-dark);
     font-size: 1.75rem;
     font-weight: 700;
     letter-spacing: -0.5px;
     text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.banner-logo {
+    height: calc(100% - 3rem);
+    /* 
+        TODO: this spacing is arbitrary and should be calculated from the padding of the banner.
+        However, the calendar page also has a filter events control that overlays the banner, 
+        causing the spacing to look off on either the home page or all the other pages, depending
+        on which we design for. Ideally, the overlap is removed or spacing is differentiated based
+        on the presence of that control.
+    */
+    margin-top: -1rem;
 }
 
 .container {
@@ -79,6 +106,34 @@ header {
 
 html {
     scroll-behavior: smooth;
+}
+
+.heading-primary {
+    font-size: 1.5rem;
+    font-weight: bold;
+    text-wrap: pretty;
+}
+
+.heading-secondary {
+    font-size: 1.1875rem;
+    font-weight: bold;
+    text-wrap: pretty;
+}
+
+.heading-tertiary {
+    font-size: 1rem;
+    font-weight: bold;
+    text-wrap: pretty;
+}
+
+.bold-underline {
+    border-bottom: 2px solid var(--accent-color);
+    margin-bottom: 1em;
+}
+
+.light-underline {
+    margin-bottom: 0.5em;
+    border-bottom: 1px solid var(--accent-color);
 }
 
 .filter-toggle {
@@ -201,7 +256,7 @@ html {
 
 .filter-option.active {
     background-color: var(--accent-color);
-    color: white;
+    color: var(--text-on-dark);
     border-color: var(--accent-color);
 }
 
@@ -283,7 +338,7 @@ html {
 
 .event-tag:hover {
     background-color: var(--accent-color);
-    color: white;
+    color: var(--text-on-dark);
 }
 
 .event-description {
@@ -306,176 +361,6 @@ html {
         margin-top: 0.4rem;
         padding-top: 0.4rem;
     }
-}
-
-.calendar {
-    position: relative;
-    min-height: 400px;
-    overflow: hidden;
-    width: 100%;
-    box-sizing: border-box;
-}
-
-.calendar-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1.5rem;
-}
-
-.calendar-controls {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-}
-
-.calendar-controls button {
-    width: 2.5rem;
-    height: 2.5rem;
-    background-color: var(--background-color);
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    cursor: pointer;
-    transition: var(--transition);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
-}
-
-.calendar-controls button::before {
-    content: '';
-    width: 0;
-    height: 0;
-    border-top: 6px solid transparent;
-    border-bottom: 6px solid transparent;
-}
-
-.calendar-controls button:first-child::before {
-    border-right: 8px solid var(--text-color);
-    margin-left: -2px;
-}
-
-.calendar-controls button:last-child::before {
-    border-left: 8px solid var(--text-color);
-    margin-right: -2px;
-}
-
-.calendar-controls button:hover {
-    background-color: #e9ecef;
-    border-color: var(--border-color);
-}
-
-.calendar-controls button:hover::before {
-    border-right-color: var(--text-color);
-    border-left-color: var(--text-color);
-}
-
-.calendar-grid {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 0.25rem;
-    width: 100%;
-    box-sizing: border-box;
-    min-width: 0;
-}
-
-@media (max-width: 768px) {
-    .calendar-grid {
-        gap: 0.1rem;
-    }
-    
-    .calendar-day {
-        padding: 0.2rem;
-        font-size: 0.75rem;
-        min-width: 0;
-    }
-    
-    .calendar-day-header {
-        padding: 0.2rem;
-        font-size: 0.65rem;
-        min-width: 0;
-    }
-    
-    .calendar {
-        overflow-x: hidden;
-    }
-}
-
-.calendar-day {
-    aspect-ratio: 1;
-    padding: 0.5rem;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: var(--transition);
-    width: 100%;
-    box-sizing: border-box;
-    font-size: 0.9rem;
-}
-
-.calendar-day.has-event:hover {
-    transform: scale(1.05);
-    box-shadow: var(--shadow-sm);
-}
-
-/* Event States */
-.calendar-day.has-event {
-    background-color: var(--accent-color);
-    color: white;
-    border-color: var(--accent-color);
-}
-
-.calendar-day.has-event.past {
-    background-color: #e0e0e0;
-    color: #666;
-    border-color: #d0d0d0;
-}
-
-.calendar-day.has-event.inactive {
-    background-color: #e0e0e0;
-    color: #666;
-    border-color: #d0d0d0;
-}
-
-.calendar-day.today {
-    border: 4px solid var(--accent-dark);
-    box-shadow: 0 2px 4px rgba(58, 110, 165, 0.1);
-    font-weight: 500;
-}
-
-.calendar-day.has-event.today {
-    border-width: 6px;
-}
-
-.calendar-day.highlight {
-    background-color: rgba(var(--accent-color-rgb), 0.15);
-    color: var(--text-color);
-    border-radius: 50%;
-}
-
-.calendar-day.hover-highlight {
-    background-color: rgba(var(--accent-color-rgb), 0.15);
-    border-radius: 50%;
-}
-
-.calendar-day.highlight.past {
-    background-color: rgba(255, 193, 7, 0.3);
-    color: #856404;
-}
-
-.calendar-day-header {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
-    color: var(--text-light);
-    font-size: 0.9rem;
-    padding: 0.5rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
 }
 
 /* Remove old modal styles */
@@ -630,160 +515,6 @@ html {
     transform: rotate(45deg);
 }
 
-.menu-toggle {
-    position: fixed;
-    top: calc(1rem + 36px); /* 36px accounts for newsletter banner height (8px padding * 2 + line height) */
-    left: 1rem;
-    z-index: 1000;
-    background: none;
-    background-color: var(--header-background);
-    border: none;
-    cursor: pointer;
-    padding: 0.5rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.375rem;
-}
-
-.menu-toggle span {
-    display: block;
-    width: 24px;
-    height: 2px;
-    background-color: white;
-    transition: var(--transition);
-}
-
-.menu-toggle:hover span {
-    background-color: var(--accent-light);
-}
-
-.menu-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
-    z-index: 999;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.3s ease;
-}
-
-.menu-overlay.visible {
-    opacity: 1;
-    pointer-events: auto;
-}
-
-.menu {
-    position: fixed;
-    top: 0;
-    left: -300px;
-    width: 280px;
-    height: 100%;
-    background-color: white;
-    z-index: 1000;
-    transition: left 0.3s ease;
-    padding: 2rem 1.5rem;
-    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
-    display: flex;
-    flex-direction: column;
-}
-
-.menu.visible {
-    left: 0;
-}
-
-.menu-header {
-    margin-bottom: 2rem;
-    padding-bottom: 1rem;
-    border-bottom: 2px solid var(--accent-color);
-    display: flex;
-    justify-content: center;
-    width: 100%;
-    overflow: hidden;
-    box-sizing: border-box;
-}
-
-.menu-logo {
-    width: 100%;
-    max-width: 100%;
-    height: auto;
-    object-fit: contain;
-    box-sizing: border-box;
-}
-
-.menu-title {
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: var(--primary-color);
-    margin-bottom: 0.75rem;
-}
-
-.menu-social {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    text-decoration: none;
-    transition: var(--transition);
-}
-
-.menu-social img {
-    width: 4rem;
-    object-fit: contain;
-    max-inline-size: 2rem;
-}
-
-.menu-items {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    flex: 1;
-}
-
-.menu-item {
-    padding: 1rem;
-    color: var(--text-color);
-    font-weight: 500;
-    transition: var(--transition);
-    cursor: pointer;
-    position: relative;
-    border: none;
-    background: none;
-    width: 100%;
-    text-align: left;
-    display: flex;
-    align-items: center;
-    text-decoration: none;
-}
-
-.menu-item::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 0;
-    height: 2px;
-    background-color: var(--accent-color);
-    transition: width 0.3s ease;
-}
-
-.menu-item:hover {
-    color: var(--accent-color);
-    transform: translateX(4px);
-}
-
-.menu-item:hover::after {
-    width: 100%;
-}
-
-@media (max-width: 768px) {
-    .menu-item {
-        padding: 0.875rem;
-        font-size: 0.95rem;
-    }
-}
-
 .slide-over .event-card.filtered {
     opacity: 0.6;
 }
@@ -804,7 +535,7 @@ ul.flashes {
 
 .newsletter-banner {
     background-color: #2c3e50;
-    color: white;
+    color: var(--text-on-dark);
     text-align: center;
     padding: 8px;
     font-size: 0.9rem;
@@ -812,12 +543,16 @@ ul.flashes {
     top: 0;
     left: 0;
     right: 0;
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    align-items: center;
 }
 
 .newsletter-banner a {
-    color: white;
-    text-decoration: none;
+    color: var(--text-on-dark);
     transition: opacity 0.2s ease;
+    flex: 0 0 auto;
 }
 
 .newsletter-banner a:hover {
