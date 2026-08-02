@@ -21,9 +21,9 @@ Guidance for coding agents working in this repository.
 ## Repository Structure
 
 - `app.py`: Flask application, routes, background calendar refresher process, `/events.json` API.
-- `bluescal.py`: Google Calendar `.ics` fetching/parsing, event normalization, recurrence expansion, feature tagging, optional Google Maps neighborhood lookup.
+- `bluescal.py`: Google Calendar `.ics` fetching/parsing, event normalization, recurrence expansion, and description sanitization.
 - `templates/base.html`: Shared layout, navigation menu, banner, analytics, shared blocks.
-- `templates/index.html`: Event calendar page and most client-side event rendering/filtering logic.
+- `templates/index.html`: Event calendar page and most client-side event rendering logic.
 - `templates/recurring_events.html`: Static recurring-event content.
 - `templates/about.html`, `templates/instructors.html`, `templates/history.html`, `templates/music.html`: Static content pages.
 - `static/css/style.css`: Global design system and responsive layout styles.
@@ -85,13 +85,11 @@ There is currently no configured test runner, formatter, linter, type checker, o
 - The refresher calls `bluescal.refresh()` every 900 seconds and retries after 60 seconds on exceptions.
 - `/events.json` reads the newest calendar object from an IPC queue, falls back to `CACHED_CAL`, then returns normalized JSON events for a requested `month` and `year`.
 - `bluescal.refresh()` fetches from `CAL_URL` and writes `bluescal.ics`, but reuses the file if it was refreshed within `CAL_CACHE_TTL_SECONDS`.
-- `bluescal.process_events()` expands recurring events, computes stable hashed IDs, infers venues/categories, sanitizes descriptions with BeautifulSoup, and optionally caches nearby-month events in memory.
-- Client-side code in `templates/index.html` fetches `/events.json`, renders the current/next week list, renders a monthly calendar, filters by location/time/features, and supports URL fragments for dates and event IDs.
+- `bluescal.process_events()` expands recurring events, computes stable hashed IDs, sanitizes descriptions with BeautifulSoup, and caches nearby-month events in memory.
+- Client-side code in `templates/index.html` fetches `/events.json`, renders the current/next week list, renders a monthly calendar, and supports URL fragments for dates and event IDs.
 
 ## Environment Variables
 
-- `BLUESCAL_GMAPS_ENABLE=1`: Enables Google Maps geocoding for neighborhood lookup. Default is disabled.
-- `MAPS_API_KEY`: Required only when Google Maps geocoding is enabled.
 - Do not commit secrets, `.env` files, API tokens, or generated credentials.
 
 ## Deployment
@@ -108,13 +106,13 @@ There is currently no configured test runner, formatter, linter, type checker, o
 - Prefer route/template changes over adding new abstractions for one-off static pages.
 - Keep user-facing content respectful of the stated mission: inclusive, culturally respectful blues dance community rooted in Black American blues dance traditions.
 - Use `target="_blank"` links with `rel="noopener"`, matching existing templates.
-- Preserve mobile behavior when touching layout, filters, menu, slide-over, or calendar controls.
+- Preserve mobile behavior when touching layout, menu, slide-over, or calendar controls.
 - Avoid committing generated/cache files such as `bluescal.ics`, `__pycache__/`, `.DS_Store`, or `.venv/`.
 - Keep image/license-sensitive content in mind. README notes the logo and instructor images are used with permission.
 
 ## Calendar/Event Change Notes
 
-- Event JSON shape consumed by the frontend includes `uid`, `title`, `date`, `time`, `location`, `neighborhood`, optional `venue`, `categories`, and `description`.
+- Event JSON shape consumed by the frontend includes `uid`, `title`, `date`, `time`, `location`, and `description`.
 - If you change fields in `bluescal.process_events()`, update the JavaScript in `templates/index.html` at the same time.
 - Date/time behavior should remain Seattle/Pacific oriented. Python uses `ZoneInfo("America/Los_Angeles")`; JavaScript uses `toLocaleString` with `America/Los_Angeles`.
 - Be careful with all-day events; frontend time parsing assumes a clock time in several places.
@@ -131,7 +129,7 @@ For template, CSS, or JavaScript changes:
 
 - Run the app and manually check desktop and mobile widths.
 - Check `/`, `/recurring-events`, `/about`, `/instructors`, `/history`, and `/music` if shared layout or CSS changes.
-- Check calendar month navigation, filter toggles, slide-over behavior, share links, and menu behavior when touching `templates/index.html`, `static/css/style.css`, or `static/js/menu.js`.
+- Check calendar month navigation, slide-over behavior, share links, and menu behavior when touching `templates/index.html`, `static/css/style.css`, or `static/js/menu.js`.
 
 For deployment changes:
 

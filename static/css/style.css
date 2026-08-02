@@ -69,15 +69,7 @@ header {
 }
 
 .banner-logo {
-    height: calc(100% - 3rem);
-    /* 
-        TODO: this spacing is arbitrary and should be calculated from the padding of the banner.
-        However, the calendar page also has a filter events control that overlays the banner, 
-        causing the spacing to look off on either the home page or all the other pages, depending
-        on which we design for. Ideally, the overlap is removed or spacing is differentiated based
-        on the presence of that control.
-    */
-    margin-top: -1rem;
+    height: calc(100% - 2rem);
 }
 
 .container {
@@ -89,19 +81,17 @@ header {
 }
 
 @media (max-width: 768px) {
+    .header-image {
+        height: 150px;
+    }
+
+    .banner-logo {
+        height: calc(100% - 1.5rem);
+    }
+
     .container {
         padding: 1rem;
     }
-}
-
-.filters {
-    background-color: white;
-    padding: 0;
-    border-radius: var(--border-radius);
-    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-    margin: -3rem auto 1.5rem;
-    position: relative;
-    z-index: 1;
 }
 
 html {
@@ -136,130 +126,6 @@ html {
     border-bottom: 1px solid var(--accent-color);
 }
 
-.filter-toggle {
-    padding: 1rem;
-    background-color: white;
-    border-radius: var(--border-radius);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    z-index: 2;
-}
-
-.filter-toggle:hover {
-    background-color: #f8f9fa;
-}
-
-.filter-toggle-text {
-    font-weight: 600;
-    color: var(--text-color);
-}
-
-.filter-toggle-icon {
-    width: 0;
-    height: 0;
-    border-left: 6px solid transparent;
-    border-right: 6px solid transparent;
-    border-top: 6px solid var(--text-color);
-    transition: transform 0.3s ease;
-}
-
-.filter-toggle-icon.expanded {
-    transform: rotate(180deg);
-}
-
-.filter-content {
-    padding: 1.5rem;
-    max-height: 1000px;
-    transition: max-height 0.3s ease, opacity 0.3s ease;
-    opacity: 1;
-    position: relative;
-    padding-bottom: 2rem;
-}
-
-.reset-filters {
-    position: absolute;
-    bottom: 1rem;
-    right: 1.5rem;
-    color: #e57373;
-    font-size: 0.9rem;
-    font-family: 'Inter', sans-serif;
-    cursor: pointer;
-    transition: var(--transition);
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-    opacity: 0;
-    pointer-events: none;
-}
-
-.reset-filters:hover {
-    color: #d32f2f;
-    text-decoration: underline;
-}
-
-.reset-filters.visible {
-    opacity: 1;
-    pointer-events: auto;
-}
-
-.reset-filters::before {
-    content: "×";
-    font-size: 1.1rem;
-    font-weight: 500;
-}
-
-.filters.collapsed .filter-content {
-    max-height: 0;
-    opacity: 0;
-    padding: 0;
-    overflow: hidden;
-}
-
-.filter-group {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-    margin-bottom: 1rem;
-}
-
-.filter-group:last-child {
-    margin-bottom: 0;
-}
-
-.filter-label {
-    font-weight: 600;
-    margin-bottom: 0.5rem;
-    width: 100%;
-    color: var(--text-color);
-    font-size: 0.9rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.filter-option {
-    padding: 0.5rem 1rem;
-    background-color: var(--background-color);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    cursor: pointer;
-    transition: var(--transition);
-    font-weight: 500;
-    font-size: 0.9rem;
-}
-
-.filter-option:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-sm);
-}
-
-.filter-option.active {
-    background-color: var(--accent-color);
-    color: var(--text-on-dark);
-    border-color: var(--accent-color);
-}
-
 .events-section {
     display: grid;
     grid-template-columns: 1fr;
@@ -279,6 +145,22 @@ html {
     box-shadow: 0 4px 6px rgba(0,0,0,0.05);
     max-height: 500px;
     overflow-y: auto;
+}
+
+@media (max-width: 768px) {
+    .events-section {
+        gap: 1rem;
+    }
+
+    .calendar {
+        order: -1;
+    }
+
+    .upcoming-events {
+        max-height: none;
+        overflow: visible;
+        padding: 1rem;
+    }
 }
 
 .events-week {
@@ -324,21 +206,6 @@ html {
     gap: 0.75rem;
     font-size: 0.9rem;
     color: var(--text-light);
-}
-
-.event-tag {
-    background-color: var(--background-color);
-    padding: 0.25rem 0.5rem;
-    border-radius: 6px;
-    font-size: 0.8rem;
-    font-weight: 500;
-    color: var(--text-color);
-    transition: var(--transition);
-}
-
-.event-tag:hover {
-    background-color: var(--accent-color);
-    color: var(--text-on-dark);
 }
 
 .event-description {
@@ -579,14 +446,6 @@ html {
 
 .slide-over-scroll-indicator.down::before {
     transform: rotate(45deg);
-}
-
-.slide-over .event-card.filtered {
-    opacity: 0.6;
-}
-
-.slide-over .event-card.filtered .event-title {
-    color: var(--text-light);
 }
 
 ul.flashes {

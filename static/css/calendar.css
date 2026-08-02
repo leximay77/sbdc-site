@@ -72,8 +72,29 @@
 }
 
 @media (max-width: 768px) {
+    .calendar {
+        min-height: 0;
+    }
+
+    .calendar-header {
+        margin-bottom: 0.75rem;
+    }
+
+    .calendar-controls {
+        gap: 0.5rem;
+    }
+
+    .calendar-controls button {
+        width: 2.25rem;
+        height: 2.25rem;
+    }
+
     .calendar-grid {
         gap: 0.1rem;
+    }
+
+    .calendar-day.empty.trailing {
+        display: none;
     }
 
     .calendar-day {
@@ -105,6 +126,11 @@
     width: 100%;
     box-sizing: border-box;
     font-size: 0.9rem;
+}
+
+.calendar-day.empty {
+    visibility: hidden;
+    pointer-events: none;
 }
 
 .calendar-day.has-event:hover {

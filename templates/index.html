@@ -20,30 +20,6 @@
 {% block content %}
     <main class="container">
         <h1 class="visually-hidden">SBDC Events Calendar</h1>
-        <div class="filters collapsed">
-            <div class="filter-toggle">
-                <span class="filter-toggle-text">Filter Events</span>
-                <div class="filter-toggle-icon"></div>
-            </div>
-            <div class="filter-content">
-                <div class="filter-group">
-                    <div class="filter-label">Location</div>
-                    <div class="filter-option active">All Locations</div>
-                </div>
-                <div class="filter-group">
-                    <div class="filter-label">Time</div>
-                    <div class="filter-option active">All Times</div>
-                    <div class="filter-option">Weekdays</div>
-                    <div class="filter-option">Weekends</div>
-                    <div class="filter-option">Evenings</div>
-                </div>
-                <div class="filter-group">
-                    <div class="filter-label">Features</div>
-                </div>
-                <div class="reset-filters">Reset filters</div>
-            </div>
-        </div>
-
         <div class="events-section">
             <div class="upcoming-events" tabindex="0">
                 <h2>Upcoming Events</h2>
@@ -109,85 +85,20 @@
                 date: "2025-05-02",
                 time: "7:00 PM - 11:00 PM",
                 location: "<some address>",
-                neighborhood: "Capitol Hill",
-                venue: 'Reverie Ballroom', // optional field
-                categories: ["Live Band", "Beginner Lesson"], // 'features' in filters
                 description: "Join us for an evening of blues dancing with live music and a beginner lesson at 7:30 PM."
             }*/
-
-            // Filter state
-            let activeFilters = {
-                location: "All Locations",
-                time: "All Times",
-                features: [] // Changed to array to store multiple features
-            };
 
             // DOM Elements
             const eventsContainer = document.querySelector('.upcoming-events');
             const calendarGrid = document.querySelector('.calendar-grid');
-            const filterOptions = document.querySelectorAll('.filter-option');
             const monthYearDisplay = document.querySelector('.calendar h2');
 
             // Initialize the page
             async function initializePage() {
                 await renderCalendar();
-                setupEventListeners();
-                setupFilterToggle();
+                setupCalendarControls();
                 renderEvents();
                 await loadUrlFragment();
-            }
-
-            // Filter events based on active filters
-            function filterEvents(options = {}) {
-                const {
-                    includePast = true,
-                    includeInactive = true,
-                    timeRange = null, // null means no time range limit
-                    forCalendar = false // whether we're filtering for calendar display
-                } = options;
-
-                const today = getSeattleDate();
-
-                return events.filter(event => {
-                    const date = getEventDate(event);
-                    const dayOfWeek = date.getUTCDay();
-                    
-                    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-                    
-                    const startMinutes = parseEventStartMinutes(event.time);
-                    const isEvening = startMinutes !== null && startMinutes >= 17 * 60;
-                    
-                    const isPast = date < today;
-
-                    // Check if event matches ALL of the selected features
-                    const matchesFeatures = activeFilters.features.length === 0 || 
-                        activeFilters.features.every(feature => event.categories.includes(feature));
-
-                    const matchesTime = activeFilters.time === "All Times" ||
-                        (activeFilters.time === "Weekends" && isWeekend) ||
-                        (activeFilters.time === "Weekdays" && !isWeekend) ||
-                        (activeFilters.time === "Evenings" && isEvening);
-
-                    const matchesLocation = activeFilters.location === "All Locations" || 
-                        event.neighborhood === activeFilters.location || ('venue' in event && event.venue === activeFilters.location);
-
-                    // Check if event is within time range if specified
-                    const withinTimeRange = !timeRange || 
-                        (date >= today && date <= timeRange);
-
-                    // For calendar, we want to show all events on a day if any match the filters
-                    if (forCalendar) {
-                        return matchesLocation && matchesTime && matchesFeatures;
-                    }
-
-                    // For event list, we apply all filters including past/inactive
-                    const shouldInclude = 
-                        (includePast || !isPast) && 
-                        (includeInactive || (matchesFeatures && matchesTime && matchesLocation)) &&
-                        withinTimeRange;
-
-                    return shouldInclude;
-                });
             }
 
             // Date-only calendar values are represented at UTC noon so browser-local
@@ -278,10 +189,6 @@
                 });
             }
 
-            function getActiveFilteredEventUids() {
-                return new Set(filterEvents({ forCalendar: true }).map(event => event.uid));
-            }
-
             async function loadEvents(month, year) {
                 eventsRequestController?.abort();
                 const controller = new AbortController();
@@ -316,7 +223,6 @@
                 const year = currentYear;
                 if (reload && !(await loadEvents(month, year))) return;
 
-                const filteredEventUids = getActiveFilteredEventUids();
                 const firstDay = createSeattleDate(year, month, 1);
                 const lastDay = createSeattleDate(year, month + 1, 0);
                 const daysInMonth = lastDay.getUTCDate();
@@ -339,13 +245,12 @@
                     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                     const calendarDate = createLocalDate(dateStr);
                     const dayEvents = getEventsForDate(calendarDate);
-                    const hasMatchingEvent = dayEvents.some(event => filteredEventUids.has(event.uid));
                     const hasEvent = dayEvents.length > 0;
                     const isPast = calendarDate < today;
                     const isToday = calendarDate.getTime() === today.getTime();
 
                     const dayElement = document.createElement('div');
-                    dayElement.className = `calendar-day ${hasEvent ? 'has-event' : ''} ${(isPast || !hasMatchingEvent) ? 'inactive' : ''} ${isToday ? 'today' : ''}`;
+                    dayElement.className = `calendar-day ${hasEvent ? 'has-event' : ''} ${isPast ? 'inactive' : ''} ${isToday ? 'today' : ''}`;
                     dayElement.textContent = day;
 
                     if (hasEvent) {
@@ -358,6 +263,13 @@
 
                     calendarGrid.appendChild(dayElement);
                 }
+
+                // Keep desktop months at a consistent six-week height.
+                for (let day = startingDay + daysInMonth; day < 42; day++) {
+                    const emptyDay = document.createElement('div');
+                    emptyDay.className = 'calendar-day empty trailing';
+                    calendarGrid.appendChild(emptyDay);
+                }
             }
 
             // Get month name
@@ -365,164 +277,8 @@
                 return MONTH_NAMES[month];
             }
 
-            // Get unique locations from events
-            function getUniqueLocations() {
-                const locations = new Set();
-                events.forEach(event => {
-                    if (event.neighborhood != "") {
-                        locations.add(event.neighborhood);
-                    }
-                    if ('venue' in event && event.venue != "") {
-                        locations.add(event.venue);
-                    }
-                });
-                return Array.from(locations).sort();
-            }
-
-            // Get unique features from events
-            function getUniqueFeatures() {
-                const features = new Set();
-                events.forEach(event => {
-                    event.categories.forEach(feature => {
-                        features.add(feature);
-                    });
-                });
-                return Array.from(features).sort();
-            }
-
-            // Setup event listeners
-            function setupEventListeners() {
-                // Setup location filters
-                const locationGroup = document.querySelector('.filter-group');
-                const locationLabel = locationGroup.querySelector('.filter-label');
-                locationGroup.innerHTML = ''; // Clear existing options
-                locationGroup.appendChild(locationLabel);
-
-                // Add "All Locations" option
-                const allLocationsOption = document.createElement('div');
-                allLocationsOption.className = 'filter-option active';
-                allLocationsOption.textContent = 'All Locations';
-                locationGroup.appendChild(allLocationsOption);
-
-                // Add location options
-                getUniqueLocations().forEach(location => {
-                    const locationOption = document.createElement('div');
-                    locationOption.className = 'filter-option';
-                    locationOption.textContent = location;
-                    locationGroup.appendChild(locationOption);
-                });
-
-                // Setup features filters
-                const featuresGroup = document.querySelectorAll('.filter-group')[2];
-                const featuresLabel = featuresGroup.querySelector('.filter-label');
-                featuresGroup.innerHTML = ''; // Clear existing options
-                featuresGroup.appendChild(featuresLabel);
-
-                // Add feature options
-                getUniqueFeatures().forEach(feature => {
-                    const featureOption = document.createElement('div');
-                    featureOption.className = 'filter-option';
-                    featureOption.setAttribute('data-feature', feature);
-                    featureOption.textContent = feature;
-                    featuresGroup.appendChild(featureOption);
-                });
-
-                // Filter option clicks
-                document.querySelectorAll('.filter-option').forEach(option => {
-                    option.addEventListener('click', () => {
-                        const group = option.parentElement;
-                        const label = group.querySelector('.filter-label').textContent;
-                        
-                        if (label === 'Features') {
-                            option.classList.toggle('active');
-                            const feature = option.getAttribute('data-feature');
-                            if (option.classList.contains('active')) {
-                                activeFilters.features.push(feature);
-                            } else {
-                                activeFilters.features = activeFilters.features.filter(f => f !== feature);
-                            }
-                        } else {
-                            group.querySelectorAll('.filter-option').forEach(opt => {
-                                opt.classList.remove('active');
-                            });
-                            option.classList.add('active');
-                            
-                            switch(label) {
-                                case 'Location':
-                                    activeFilters.location = option.textContent;
-                                    break;
-                                case 'Time':
-                                    activeFilters.time = option.textContent;
-                                    break;
-                            }
-                        }
-                        
-                        updateResetButtonVisibility();
-                        renderEvents();
-                        renderCalendar({ reload: false });
-
-                        // Update slide-over if it's open
-                        const slideOver = document.querySelector('.slide-over');
-                        if (slideOver) {
-                            const date = createLocalDate(slideOver.dataset.date);
-                            const dayEvents = getEventsForDate(date);
-
-                            // Re-render the slide-over with the same date and events
-                            showEventSlideOver(dayEvents, date, null, true);
-                        }
-                    });
-                });
-
-                // Reset filters button
-                const resetButton = document.querySelector('.reset-filters');
-                resetButton.addEventListener('click', () => {
-                    // Reset location filter
-                    document.querySelectorAll('.filter-group')[0].querySelectorAll('.filter-option').forEach(opt => {
-                        opt.classList.remove('active');
-                    });
-                    document.querySelectorAll('.filter-group')[0].querySelector('.filter-option').classList.add('active');
-                    activeFilters.location = "All Locations";
-
-                    // Reset time filter
-                    document.querySelectorAll('.filter-group')[1].querySelectorAll('.filter-option').forEach(opt => {
-                        opt.classList.remove('active');
-                    });
-                    document.querySelectorAll('.filter-group')[1].querySelector('.filter-option').classList.add('active');
-                    activeFilters.time = "All Times";
-
-                    // Reset features filter
-                    document.querySelectorAll('.filter-group')[2].querySelectorAll('.filter-option').forEach(opt => {
-                        opt.classList.remove('active');
-                    });
-                    activeFilters.features = [];
-
-                    // Hide reset button
-                    resetButton.classList.remove('visible');
-
-                    // Re-render both events and calendar
-                    renderEvents();
-                    renderCalendar({ reload: false });
-
-                    // Update slide-over if it's open
-                    const slideOver = document.querySelector('.slide-over');
-                    if (slideOver) {
-                        const date = createLocalDate(slideOver.dataset.date);
-                        const dayEvents = getEventsForDate(date);
-
-                        // Re-render the slide-over with the same date and events
-                        showEventSlideOver(dayEvents, date, null, true);
-                    }
-                });
-
-                // Calendar navigation
-                const calendarControls = document.querySelector('.calendar-controls');
-                calendarControls.innerHTML = `
-                    <button aria-label="Previous month"></button>
-                    <button aria-label="Next month"></button>
-                `;
-
-                // Add click handlers for navigation
-                const [prevButton, nextButton] = calendarControls.querySelectorAll('button');
+            function setupCalendarControls() {
+                const [prevButton, nextButton] = document.querySelectorAll('.calendar-controls button');
                 prevButton.addEventListener('click', () => {
                     currentMonth--;
                     if (currentMonth < 0) {
@@ -542,18 +298,7 @@
                 });
             }
 
-            // Update reset button visibility based on active filters
-            function updateResetButtonVisibility() {
-                const resetButton = document.querySelector('.reset-filters');
-                const isDefaultState = 
-                    activeFilters.location === "All Locations" &&
-                    activeFilters.time === "All Times" &&
-                    activeFilters.features.length === 0;
-                
-                resetButton.classList.toggle('visible', !isDefaultState);
-            }
-
-            // Render events based on filters
+            // Render upcoming events
             function renderEvents() {
                 const today = getSeattleDate();
                 
@@ -569,21 +314,12 @@
                 // Get the end of next week (Saturday)
                 const nextWeekEnd = addDays(nextWeekStart, 6);
 
-                // Filter events for the current week and next week
-                const currentWeekEvents = filterEvents({
-                    includePast: false,
-                    includeInactive: false,
-                    timeRange: currentWeekEnd
-                }).filter(event => {
+                const currentWeekEvents = events.filter(event => {
                     const eventDate = getEventDate(event);
-                    return eventDate >= currentWeekStart && eventDate <= currentWeekEnd;
+                    return eventDate >= today && eventDate >= currentWeekStart && eventDate <= currentWeekEnd;
                 });
 
-                const nextWeekEvents = filterEvents({
-                    includePast: false,
-                    includeInactive: false,
-                    timeRange: nextWeekEnd
-                }).filter(event => {
+                const nextWeekEvents = events.filter(event => {
                     const eventDate = getEventDate(event);
                     return eventDate >= nextWeekStart && eventDate <= nextWeekEnd;
                 });
@@ -625,7 +361,7 @@
 
                 // Show message if no events
                 if (currentWeekEvents.length === 0 && nextWeekEvents.length === 0) {
-                    eventsContainer.innerHTML += '<p>No upcoming events match your filters.</p>';
+                    eventsContainer.innerHTML += '<p>No upcoming events are scheduled.</p>';
                 }
             }
 
@@ -643,9 +379,6 @@
                     <div class="event-details">
                         <span>${event.time}</span>
                         <span>${event.location}</span>
-                        ${event.categories.map(feature => 
-                            `<span class="event-tag">${feature}</span>`
-                        ).join('')}
                     </div>
                 `;
 
@@ -739,7 +472,6 @@
                         const timeB = parseEventStartMinutes(b.time) ?? -1;
                         return timeA - timeB;
                     });
-                    const filteredEventUids = getActiveFilteredEventUids();
 
                     // Create slide-over
                     const slideOver = document.createElement('div');
@@ -757,9 +489,8 @@
                         </div>
                         <div class="slide-over-content">
                             ${sortedEvents.map(event => {
-                                const isFiltered = !filteredEventUids.has(event.uid);
                                 return `
-                                    <div class="event-card ${isFiltered ? 'filtered' : ''}" data-uid="${event.uid}">
+                                    <div class="event-card" data-uid="${event.uid}">
                                         <div class="event-title-row">
                                             <h3 class="event-title">${event.title}</h3>
                                             <button class="share-button" title="Copy Link" aria-label="Copy event link">
@@ -772,9 +503,6 @@
                                         <div class="event-details">
                                             <span>⏰ ${event.time}</span>
                                             ${event.location != "" ? `<span>📍 <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}" target="_blank" rel="noopener">${event.location}</a></span>` : ''}
-                                            ${event.categories.map(feature => 
-                                                `<span class="event-tag">${feature}</span>`
-                                            ).join('')}
                                         </div>
                                         <div class="event-description">${event.description}</div>
                                     </div>
@@ -835,7 +563,7 @@
                     const calendar = document.querySelector('.calendar');
                     calendar.appendChild(slideOver);
                     
-                    // If it's an update (filter change), don't animate
+                    // Skip the animation when refreshing an open slide-over.
                     if (isUpdate) {
                         slideOver.classList.add('visible');
                         resolve();
@@ -928,55 +656,6 @@
                         const targetEventCard = slideOver.querySelector(`[data-uid="${targetEvent.uid}"]`);
                         if (targetEventCard) {
                             targetEventCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                        }
-                    }
-                });
-            }
-
-            // Setup filter toggle functionality
-            function setupFilterToggle() {
-                const filters = document.querySelector('.filters');
-                const toggle = document.querySelector('.filter-toggle');
-                const icon = document.querySelector('.filter-toggle-icon');
-                const calendar = document.querySelector('.calendar');
-                
-                // Check if filters were previously collapsed
-                const isCollapsed = localStorage.getItem('filtersCollapsed') === 'true';
-                if (isCollapsed) {
-                    filters.classList.add('collapsed');
-                    icon.classList.add('expanded');
-                }
-
-                toggle.addEventListener('click', () => {
-                    const wasCollapsed = filters.classList.contains('collapsed');
-                    filters.classList.toggle('collapsed');
-                    icon.classList.toggle('expanded');
-                    
-                    // Save the collapsed state
-                    localStorage.setItem('filtersCollapsed', filters.classList.contains('collapsed'));
-
-                    // Only auto-scroll on desktop
-                    if (window.innerWidth > 768) {
-                        if (wasCollapsed) {
-                            // When expanding, wait for the content to be visible
-                            const handleExpand = () => {
-                                const calendarRect = calendar.getBoundingClientRect();
-                                const scrollPosition = window.scrollY + calendarRect.top - 20;
-                                window.scrollTo({
-                                    top: scrollPosition
-                                });
-                                filters.removeEventListener('transitionend', handleExpand);
-                            };
-                            
-                            // Start listening for the transition to complete
-                            filters.addEventListener('transitionend', handleExpand);
-                        } else {
-                            // If we're collapsing, scroll immediately
-                            const filtersRect = filters.getBoundingClientRect();
-                            const scrollPosition = window.scrollY + filtersRect.top;
-                            window.scrollTo({
-                                top: scrollPosition
-                            });
                         }
                     }
                 });

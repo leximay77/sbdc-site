@@ -19,11 +19,8 @@ CAL_FILE = "bluescal.ics"
 CAL_CACHE_TTL_SECONDS = 10 # don't refresh if refreshed in the last X seconds
 SEATTLE_TZ = ZoneInfo("America/Los_Angeles")
 
-MAPS_API_KEY = os.getenv("MAPS_API_KEY")
-
 EVENTS_DB = {}
 MONTH_EVENTS_DB = {}
-NEIGHBORHOODS_DB = {}
 
 
 def clear_event_caches():
@@ -37,9 +34,6 @@ def refresh():
         if refreshed in the last TTL sec, use the local file, else fetch
         steady state: refreshing from server every 15min, parsing & caching on-demand
     """
-    global MAPS_API_KEY
-    if not MAPS_API_KEY:
-        MAPS_API_KEY = os.getenv("MAPS_API_KEY")
     if os.path.exists(CAL_FILE) and os.path.getmtime(CAL_FILE) > time.time() - CAL_CACHE_TTL_SECONDS:
         with open(CAL_FILE, 'r') as f:
             cal_data = f.read()
@@ -71,9 +65,6 @@ def process_events(cal, month: int, year: int, do_cache=False, logger=None):
         uid = sha256(str(uid_val).encode("utf-8")).hexdigest()
         # already in cache
         if EVENTS_DB.get(uid):
-            # sometimes we cache without getting neighborhood
-            if EVENTS_DB[uid]["location"] and not EVENTS_DB[uid]["neighborhood"]:
-                EVENTS_DB[uid]["neighborhood"] = get_neighborhood(EVENTS_DB[uid]["location"], logger)
             events.append(EVENTS_DB[uid])
             continue
 
@@ -95,25 +86,6 @@ def process_events(cal, month: int, year: int, do_cache=False, logger=None):
             event["time"] = "All Day"
 
         event["location"] = cal_event.get("LOCATION", "")
-        event["neighborhood"] = get_neighborhood(event["location"], logger)
-        if event["location"].startswith("Reverie Ballroom") or "Reverie Ballroom" in event["title"]:
-            event["venue"] = "Reverie Ballroom"
-        elif event["location"].startswith("Black & Tan Hall") or "Hillman City Sway" in event["title"]:
-            event["venue"] = "Black & Tan Hall"
-        elif event["location"].startswith("Lowdown Ballroom"):
-            event["venue"] = "Lowdown Ballroom"
-        elif event["location"].startswith("Dance Underground"):
-            event["venue"] = "Dance Underground"
-
-        features = set()
-        if ("live music" in str(cal_event.get("DESCRIPTION", "")).lower() or "live music" in str(cal_event.get("SUMMARY", "")).lower() or
-            " band" in str(cal_event.get("DESCRIPTION", "")).lower() or " band" in str(cal_event.get("SUMMARY", "")).lower()):
-            features.add("Live Music")
-        lesson_strings = ["lesson", "dance class", "practica", "workshop", "instructor"]
-        if any(s in str(cal_event.get("DESCRIPTION", "")).lower() or s in str(cal_event.get("SUMMARY", "")).lower() for s in lesson_strings):
-            features.add("Lesson")
-        # TODO get features from an LLM and cache in database
-        event["categories"] = list(features)
 
         description = str(cal_event.get("DESCRIPTION", ""))
         try:
@@ -160,36 +132,3 @@ def fix_datetime(vddd):
         return dt.replace(tzinfo=SEATTLE_TZ)
     else:
         return dt.astimezone(SEATTLE_TZ)
-
-def get_neighborhood(location: str, logger=None):
-    if os.getenv("BLUESCAL_GMAPS_ENABLE", "0") != "1":
-        return ""
-    global NEIGHBORHOODS_DB
-    if location == "":
-        return ""
-    if NEIGHBORHOODS_DB.get(location):
-        if logger:
-            logger.debug(f"Using cached neighborhood for {location}")
-        return NEIGHBORHOODS_DB[location]
-    if not MAPS_API_KEY or not location:
-        return ""
-    response = requests.get(f"https://maps.googleapis.com/maps/api/geocode/json?address={requests.utils.quote(location)}&key={MAPS_API_KEY}")
-    if response.status_code == 200:
-        data = response.json()
-        if data["status"] == "OK" and data["results"]:
-            try:
-                components = data["results"][0]["address_components"]
-                for comp in components:
-                    if "neighborhood" in comp["types"] and comp.get("long_name"):
-                        NEIGHBORHOODS_DB[location] = str(comp["long_name"])
-                        return NEIGHBORHOODS_DB[location]
-            except (KeyError, TypeError) as e:
-                if logger:
-                    logger.error(f"Failed to get neighborhood for {location}: {data["status"]} ({e})")
-        else:
-            if logger:
-                logger.error(f"Failed to get neighborhood for {location}: {data["status"]} (unknown)")
-    else:
-        if logger:
-            logger.error(f"Failed to get neighborhood for {location}: HTTP {response.status_code}")
-    return ""
