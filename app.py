@@ -49,8 +49,8 @@ def events_json():
         ipc = app.config.get("IPC_QUEUE")
         if not ipc:
             app.logger.error("No IPC to read calendar from")
-        cal = ipc.get_nowait()
-        CACHED_CAL = cal
+        CACHED_CAL = ipc.get_nowait()
+        bluescal.clear_event_caches()
     except Exception as e:
         cal = CACHED_CAL
     if not CACHED_CAL:
@@ -67,7 +67,11 @@ def events_json():
         # asking for next year and it's <= three forward
         (year - today.year == 1 and ((today.month + 3) % 12) >= month))
     events = bluescal.process_events(CACHED_CAL, month, year, do_cache, app.logger)
-    return jsonify(events)
+    response = jsonify(events)
+    response.add_etag()
+    response.cache_control.private = True
+    response.cache_control.max_age = 300
+    return response.make_conditional(request)
 
 @app.route('/recurring-events')
 def recurring_events():

@@ -78,16 +78,25 @@
         // Wrap initialization in an async function
         async function initialize() {
 
-            // Current date handling
-            let currentDate = getSeattleDate(); // Use current date instead of hardcoded value
-            let currentMonth = currentDate.getMonth();
-            let currentYear = currentDate.getFullYear();
-            
-            const params = new URLSearchParams({
-                month: currentMonth+1, // js 0ndx to py 1ndx
-                year: currentYear
+            const SEATTLE_TIME_ZONE = 'America/Los_Angeles';
+            const seattleDateFormatter = new Intl.DateTimeFormat('en-US', {
+                timeZone: SEATTLE_TIME_ZONE,
+                weekday: 'long',
+                month: 'long',
+                day: 'numeric'
             });
-            let events = await fetch(`/events.json?${params}`).then(response => response.json());
+            const MONTH_NAMES = [
+                'January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'
+            ];
+
+            const currentDate = getSeattleDate();
+            let currentMonth = currentDate.getUTCMonth();
+            let currentYear = currentDate.getUTCFullYear();
+            let events = [];
+            let eventsByDate = new Map();
+            let eventsRequestController;
+            let eventsRequestId = 0;
             /* example:
             {
                 uid: "12345",
@@ -115,26 +124,12 @@
             const monthYearDisplay = document.querySelector('.calendar h2');
 
             // Initialize the page
-            function initializePage() {
-                // Create a promise that resolves when both events and calendar are rendered
-                const renderPromise = Promise.all([
-                    new Promise(resolve => {
-                        renderEvents();
-                        resolve();
-                    }),
-                    new Promise(resolve => {
-                        renderCalendar();
-                        resolve();
-                    }),
-                    new Promise(resolve => {
-                        loadUrlFragment();
-                        resolve();
-                    })
-                ]);
-
-                // Setup event listeners and filters
+            async function initializePage() {
+                await renderCalendar();
                 setupEventListeners();
                 setupFilterToggle();
+                renderEvents();
+                await loadUrlFragment();
             }
 
             // Filter events based on active filters
@@ -149,18 +144,13 @@
                 const today = getSeattleDate();
 
                 return events.filter(event => {
-                    const date = createLocalDate(event.date);
-                    const dayOfWeek = date.getDay();
+                    const date = getEventDate(event);
+                    const dayOfWeek = date.getUTCDay();
                     
                     const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
                     
-                    // Extract start time and convert to 24-hour format for comparison
-                    const startTime = event.time.split(' - ')[0];
-                    const [time, period] = startTime.split(' ');
-                    let [hours, minutes] = time.split(':').map(Number);
-                    if (period === 'PM' && hours !== 12) hours += 12;
-                    if (period === 'AM' && hours === 12) hours = 0;
-                    const isEvening = hours >= 17; // 5:00 PM or later
+                    const startMinutes = parseEventStartMinutes(event.time);
+                    const isEvening = startMinutes !== null && startMinutes >= 17 * 60;
                     
                     const isPast = date < today;
 
@@ -195,33 +185,46 @@
                 });
             }
 
-            // Helper function to create a date in local timezone
+            // Date-only calendar values are represented at UTC noon so browser-local
+            // timezones cannot shift them into the previous Seattle day when formatted.
+            function createSeattleDate(year, monthIndex, day) {
+                return new Date(Date.UTC(year, monthIndex, day, 12, 0, 0, 0));
+            }
+
+            // Helper function to create a Seattle civil date from YYYY-MM-DD
             function createLocalDate(dateStr) {
                 const [year, month, day] = dateStr.split('-').map(Number);
-                return new Date(year, month - 1, day, 0, 0, 0, 0);
+                return createSeattleDate(year, month - 1, day);
             }
 
             // Helper function to get current date in Seattle timezone
             function getSeattleDate() {
                 const now = new Date();
-                const seattleTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
-                return new Date(seattleTime.getFullYear(), seattleTime.getMonth(), seattleTime.getDate());
+                const parts = new Intl.DateTimeFormat('en-US', {
+                    timeZone: SEATTLE_TIME_ZONE,
+                    year: 'numeric',
+                    month: 'numeric',
+                    day: 'numeric'
+                }).formatToParts(now).reduce((dateParts, part) => {
+                    dateParts[part.type] = part.value;
+                    return dateParts;
+                }, {});
+                return createSeattleDate(Number(parts.year), Number(parts.month) - 1, Number(parts.day));
             }
 
             // Helper function to format date in Seattle timezone
             function formatSeattleDate(date) {
-                return date.toLocaleString('en-US', {
-                    timeZone: 'America/Los_Angeles',
-                    weekday: 'long',
-                    month: 'long',
-                    day: 'numeric'
-                });
+                return seattleDateFormatter.format(date);
+            }
+
+            function getDateKey(date) {
+                return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
             }
 
             // Helper function to create a date hash for URL fragments
             function createDateHash(date) {
                 // Create a consistent hash for a date in YYYY-MM-DD format
-                return `date-${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                return `date-${getDateKey(date)}`;
             }
 
             // Helper function to parse a date hash from URL fragment
@@ -229,86 +232,132 @@
                 const match = hash.match(/^date-(\d{4})-(\d{2})-(\d{2})$/);
                 if (!match) return null;
                 const [_, year, month, day] = match;
-                return new Date(year, parseInt(month) - 1, parseInt(day));
+                return createSeattleDate(Number(year), Number(month) - 1, Number(day));
+            }
+
+            function addDays(date, days) {
+                const nextDate = new Date(date);
+                nextDate.setUTCDate(nextDate.getUTCDate() + days);
+                return nextDate;
+            }
+
+            function getEventDate(event) {
+                return createLocalDate(event.date);
+            }
+
+            function getEventsForDate(date) {
+                const dateKey = getDateKey(date);
+                return eventsByDate.get(dateKey) || [];
+            }
+
+            function parseEventStartMinutes(timeText) {
+                const startTime = timeText.split(' - ')[0];
+                const match = startTime.match(/^(\d{1,2})(?::(\d{2}))?\s*(AM|PM)$/i);
+                if (!match) return null;
+
+                let hours = Number(match[1]);
+                const minutes = Number(match[2] || '0');
+                const period = match[3].toUpperCase();
+
+                if (period === 'PM' && hours !== 12) hours += 12;
+                if (period === 'AM' && hours === 12) hours = 0;
+                return hours * 60 + minutes;
+            }
+
+            function indexEvents() {
+                eventsByDate = new Map();
+                events.forEach(event => {
+                    const dayEvents = eventsByDate.get(event.date) || [];
+                    dayEvents.push(event);
+                    eventsByDate.set(event.date, dayEvents);
+                });
+            }
+
+            function getActiveFilteredEventUids() {
+                return new Set(filterEvents({ forCalendar: true }).map(event => event.uid));
+            }
+
+            async function loadEvents(month, year) {
+                eventsRequestController?.abort();
+                const controller = new AbortController();
+                const requestId = ++eventsRequestId;
+                eventsRequestController = controller;
+                const params = new URLSearchParams({ month: month + 1, year });
+
+                try {
+                    const response = await fetch(`/events.json?${params}`, { signal: controller.signal });
+                    if (!response.ok) {
+                        throw new Error(`Failed to load events: ${response.status}`);
+                    }
+                    const loadedEvents = await response.json();
+                    if (requestId !== eventsRequestId) return false;
+
+                    events = loadedEvents;
+                    indexEvents();
+                    return true;
+                } catch (error) {
+                    if (error.name === 'AbortError') return false;
+                    throw error;
+                } finally {
+                    if (requestId === eventsRequestId) {
+                        eventsRequestController = undefined;
+                    }
+                }
             }
 
             // Render calendar
-            async function renderCalendar() {
-                // Make sure we have the current month's events
-                const params = new URLSearchParams({
-                    month: currentMonth+1, // js 0ndx to py 1ndx
-                    year: currentYear
-                });
-                events = await fetch(`/events.json?${params}`).then(response => response.json());
-                // Create first and last day in Seattle time
-                const firstDay = new Date(currentYear, currentMonth, 1);
-                firstDay.setHours(0, 0, 0, 0);
-                const lastDay = new Date(currentYear, currentMonth == 11 ? 0 : currentMonth + 1, 0);
-                lastDay.setHours(0, 0, 0, 0);
-                
-                const daysInMonth = lastDay.getDate();
-                const startingDay = firstDay.getDay();
+            async function renderCalendar({ reload = true } = {}) {
+                const month = currentMonth;
+                const year = currentYear;
+                if (reload && !(await loadEvents(month, year))) return;
+
+                const filteredEventUids = getActiveFilteredEventUids();
+                const firstDay = createSeattleDate(year, month, 1);
+                const lastDay = createSeattleDate(year, month + 1, 0);
+                const daysInMonth = lastDay.getUTCDate();
+                const startingDay = firstDay.getUTCDay();
                 const today = getSeattleDate();
 
-                // Update month/year display
-                monthYearDisplay.textContent = `${getMonthName(currentMonth)} ${currentYear}`;
+                monthYearDisplay.textContent = `${getMonthName(month)} ${year}`;
 
-                // Clear existing calendar days
                 while (calendarGrid.children.length > 7) {
                     calendarGrid.removeChild(calendarGrid.lastChild);
                 }
 
-                // Add empty cells for days before the first of the month
                 for (let i = 0; i < startingDay; i++) {
                     const emptyDay = document.createElement('div');
                     emptyDay.className = 'calendar-day empty';
                     calendarGrid.appendChild(emptyDay);
                 }
 
-                // Add days of the month
                 for (let day = 1; day <= daysInMonth; day++) {
-                    const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                     const calendarDate = createLocalDate(dateStr);
-                    const isPast = calendarDate < today;
-                    
-                    // Get all events for this day
-                    const dayEvents = events.filter(event => {
-                        const eventDate = createLocalDate(event.date);
-                        return eventDate.getTime() === calendarDate.getTime();
-                    });
-
-                    // Check if any events match current filters
-                    const hasMatchingEvent = dayEvents.some(event => 
-                        filterEvents({ forCalendar: true }).includes(event)
-                    );
-                    
+                    const dayEvents = getEventsForDate(calendarDate);
+                    const hasMatchingEvent = dayEvents.some(event => filteredEventUids.has(event.uid));
                     const hasEvent = dayEvents.length > 0;
+                    const isPast = calendarDate < today;
                     const isToday = calendarDate.getTime() === today.getTime();
-                    
+
                     const dayElement = document.createElement('div');
                     dayElement.className = `calendar-day ${hasEvent ? 'has-event' : ''} ${(isPast || !hasMatchingEvent) ? 'inactive' : ''} ${isToday ? 'today' : ''}`;
                     dayElement.textContent = day;
-                    
+
                     if (hasEvent) {
                         dayElement.style.cursor = 'pointer';
                         dayElement.addEventListener('click', (e) => {
-                            // Update URL fragment with date hash
                             history.replaceState(null, '', `#${createDateHash(calendarDate)}`);
                             showEventSlideOver(dayEvents, calendarDate, e.target);
                         });
                     }
-                    
+
                     calendarGrid.appendChild(dayElement);
                 }
             }
 
             // Get month name
             function getMonthName(month) {
-                const months = [
-                    'January', 'February', 'March', 'April', 'May', 'June',
-                    'July', 'August', 'September', 'October', 'November', 'December'
-                ];
-                return months[month];
+                return MONTH_NAMES[month];
             }
 
             // Get unique locations from events
@@ -405,23 +454,13 @@
                         
                         updateResetButtonVisibility();
                         renderEvents();
-                        renderCalendar();
+                        renderCalendar({ reload: false });
 
                         // Update slide-over if it's open
                         const slideOver = document.querySelector('.slide-over');
                         if (slideOver) {
-                            const dateStr = slideOver.querySelector('.slide-over-title').textContent;
-                            // Parse the date string (e.g., "Monday, April 22") into a Date object
-                            const [weekday, month, day] = dateStr.split(' ');
-                            const currentYear = getSeattleDate().getFullYear();
-                            const monthIndex = new Date(`${month} 1, ${currentYear}`).getMonth();
-                            const date = new Date(currentYear, monthIndex, parseInt(day));
-                            
-                            // Get all events for this date
-                            const dayEvents = events.filter(event => {
-                                const eventDate = createLocalDate(event.date);
-                                return eventDate.getTime() === date.getTime();
-                            });
+                            const date = createLocalDate(slideOver.dataset.date);
+                            const dayEvents = getEventsForDate(date);
 
                             // Re-render the slide-over with the same date and events
                             showEventSlideOver(dayEvents, date, null, true);
@@ -457,23 +496,13 @@
 
                     // Re-render both events and calendar
                     renderEvents();
-                    renderCalendar();
+                    renderCalendar({ reload: false });
 
                     // Update slide-over if it's open
                     const slideOver = document.querySelector('.slide-over');
                     if (slideOver) {
-                        const dateStr = slideOver.querySelector('.slide-over-title').textContent;
-                        // Parse the date string (e.g., "Monday, April 22") into a Date object
-                        const [weekday, month, day] = dateStr.split(' ');
-                        const currentYear = getSeattleDate().getFullYear();
-                        const monthIndex = new Date(`${month} 1, ${currentYear}`).getMonth();
-                        const date = new Date(currentYear, monthIndex, parseInt(day));
-                        
-                        // Get all events for this date
-                        const dayEvents = events.filter(event => {
-                            const eventDate = createLocalDate(event.date);
-                            return eventDate.getTime() === date.getTime();
-                        });
+                        const date = createLocalDate(slideOver.dataset.date);
+                        const dayEvents = getEventsForDate(date);
 
                         // Re-render the slide-over with the same date and events
                         showEventSlideOver(dayEvents, date, null, true);
@@ -524,24 +553,16 @@
                 const today = getSeattleDate();
                 
                 // Get the start of the current week (Sunday)
-                const currentWeekStart = new Date(today);
-                currentWeekStart.setDate(today.getDate() - today.getDay());
-                currentWeekStart.setHours(0, 0, 0, 0);
+                const currentWeekStart = addDays(today, -today.getUTCDay());
                 
                 // Get the end of the current week (Saturday)
-                const currentWeekEnd = new Date(currentWeekStart);
-                currentWeekEnd.setDate(currentWeekStart.getDate() + 6);
-                currentWeekEnd.setHours(23, 59, 59, 999);
+                const currentWeekEnd = addDays(currentWeekStart, 6);
                 
                 // Get the start of next week (Sunday)
-                const nextWeekStart = new Date(currentWeekStart);
-                nextWeekStart.setDate(currentWeekStart.getDate() + 7);
-                nextWeekStart.setHours(0, 0, 0, 0);
+                const nextWeekStart = addDays(currentWeekStart, 7);
                 
                 // Get the end of next week (Saturday)
-                const nextWeekEnd = new Date(nextWeekStart);
-                nextWeekEnd.setDate(nextWeekStart.getDate() + 6);
-                nextWeekEnd.setHours(23, 59, 59, 999);
+                const nextWeekEnd = addDays(nextWeekStart, 6);
 
                 // Filter events for the current week and next week
                 const currentWeekEvents = filterEvents({
@@ -549,7 +570,7 @@
                     includeInactive: false,
                     timeRange: currentWeekEnd
                 }).filter(event => {
-                    const eventDate = createLocalDate(event.date);
+                    const eventDate = getEventDate(event);
                     return eventDate >= currentWeekStart && eventDate <= currentWeekEnd;
                 });
 
@@ -558,12 +579,12 @@
                     includeInactive: false,
                     timeRange: nextWeekEnd
                 }).filter(event => {
-                    const eventDate = createLocalDate(event.date);
+                    const eventDate = getEventDate(event);
                     return eventDate >= nextWeekStart && eventDate <= nextWeekEnd;
                 });
 
                 // Sort events by date within each week
-                const sortByDate = (a, b) => createLocalDate(a.date) - createLocalDate(b.date);
+                const sortByDate = (a, b) => getEventDate(a) - getEventDate(b);
                 currentWeekEvents.sort(sortByDate);
                 nextWeekEvents.sort(sortByDate);
 
@@ -605,7 +626,7 @@
 
             // Helper function to create event card
             function createEventCard(event) {
-                const eventDate = createLocalDate(event.date);
+                const eventDate = getEventDate(event);
                 const formattedDate = formatSeattleDate(eventDate);
                 
                 const eventCard = document.createElement('div');
@@ -629,10 +650,7 @@
                     history.replaceState(null, '', `#event-${event.uid}`);
                     
                     // Get all events for this day
-                    const dayEvents = events.filter(e => {
-                        const eDate = createLocalDate(e.date);
-                        return eDate.getTime() === eventDate.getTime();
-                    });
+                    const dayEvents = getEventsForDate(eventDate);
                     showEventSlideOver(dayEvents, eventDate, eventCard).then(() => {
                         // Once the slide-over animation is complete, scroll to the event
                         const slideOver = document.querySelector('.slide-over');
@@ -648,12 +666,12 @@
                 // Add hover functionality for non-mobile devices
                 if (window.innerWidth > 768) {
                     eventCard.addEventListener('mouseenter', () => {
-                        const eventMonth = eventDate.getMonth();
-                        const eventYear = eventDate.getFullYear();
+                        const eventMonth = eventDate.getUTCMonth();
+                        const eventYear = eventDate.getUTCFullYear();
                         
                         // Only highlight if calendar is showing the same month
                         if (eventMonth === currentMonth && eventYear === currentYear) {
-                            const day = eventDate.getDate();
+                            const day = eventDate.getUTCDate();
                             const calendarDays = document.querySelectorAll('.calendar-day');
                             calendarDays.forEach(dayElement => {
                                 if (parseInt(dayElement.textContent) === day) {
@@ -690,6 +708,7 @@
                     existingSlideOver.classList.remove('visible');
                     return new Promise(resolve => {
                         setTimeout(() => {
+                            existingSlideOver.cleanup?.();
                             existingSlideOver.remove();
                             createAndShowSlideOver(events, date, targetElement, isUpdate).then(resolve);
                         }, 150); // Faster slide-out animation
@@ -698,6 +717,7 @@
 
                 // If we have an existing slide-over and it's an update, remove it immediately
                 if (existingSlideOver && isUpdate) {
+                    existingSlideOver.cleanup?.();
                     existingSlideOver.remove();
                 }
 
@@ -709,25 +729,17 @@
             function createAndShowSlideOver(events, date, targetElement, isUpdate = false) {
                 return new Promise(resolve => {
                     // Sort events by start time
-                    events.sort((a, b) => {
-                        const timeA = a.time.split(' - ')[0];
-                        const timeB = b.time.split(' - ')[0];
-                        
-                        // Convert time strings to comparable values
-                        const parseTime = (timeStr) => {
-                            const [time, period] = timeStr.split(' ');
-                            let [hours, minutes] = time.split(':').map(Number);
-                            if (period === 'PM' && hours !== 12) hours += 12;
-                            if (period === 'AM' && hours === 12) hours = 0;
-                            return hours * 60 + minutes; // Convert to minutes for easy comparison
-                        };
-                        
-                        return parseTime(timeA) - parseTime(timeB);
+                    const sortedEvents = [...events].sort((a, b) => {
+                        const timeA = parseEventStartMinutes(a.time) ?? -1;
+                        const timeB = parseEventStartMinutes(b.time) ?? -1;
+                        return timeA - timeB;
                     });
+                    const filteredEventUids = getActiveFilteredEventUids();
 
                     // Create slide-over
                     const slideOver = document.createElement('div');
                     slideOver.className = 'slide-over';
+                    slideOver.dataset.date = getDateKey(date);
                     
                     // Format date
                     const formattedDate = formatSeattleDate(date);
@@ -739,8 +751,8 @@
                             <div class="slide-over-close">&times;</div>
                         </div>
                         <div class="slide-over-content">
-                            ${events.map(event => {
-                                const isFiltered = !filterEvents({ forCalendar: true }).includes(event);
+                            ${sortedEvents.map(event => {
+                                const isFiltered = !filteredEventUids.has(event.uid);
                                 return `
                                     <div class="event-card ${isFiltered ? 'filtered' : ''}" data-uid="${event.uid}">
                                         <div class="event-title-row">
@@ -796,89 +808,22 @@
                         });
                     });
 
-                    // Add styles for the share button
-                    const style = document.createElement('style');
-                    style.textContent = `
-                        .event-title-row {
-                            display: flex;
-                            align-items: baseline;
-                            gap: 6px;
-                            margin-bottom: 4px;
-                        }
-                        .share-button {
-                            display: flex;
-                            align-items: center;
-                            gap: 3px;
-                            padding: 2px 4px;
-                            margin-top: -1px;
-                            border: none;
-                            background: rgba(0, 0, 0, 0.04);
-                            color: #888;
-                            font-size: 0.75em;
-                            font-variant: small-caps;
-                            letter-spacing: 0.02em;
-                            cursor: pointer;
-                            border-radius: 3px;
-                            transition: all 0.2s ease;
-                            line-height: 1;
-                            width: 24px;
-                            overflow: hidden;
-                            white-space: nowrap;
-                        }
-                        .share-button:hover {
-                            background: rgba(0, 0, 0, 0.08);
-                            color: #666;
-                            width: 90px;
-                        }
-                        .share-button.copied {
-                            color: #4CAF50;
-                            background: rgba(76, 175, 80, 0.08);
-                            width: 90px;
-                        }
-                        .share-icon {
-                            opacity: 0.6;
-                            width: 14px;
-                            height: 14px;
-                            flex-shrink: 0;
-                        }
-                        .share-text {
-                            font-size: 0.9em;
-                            font-weight: 500;
-                            opacity: 0;
-                            transition: opacity 0.2s ease;
-                            margin-left: 2px;
-                        }
-                        .share-button:hover .share-text,
-                        .share-button.copied .share-text {
-                            opacity: 1;
-                        }
-                        @media (max-width: 768px) {
-                            .share-button {
-                                display: none;
-                            }
-                        }
-                    `;
-                    document.head.appendChild(style);
 
-                    // Add event listeners
                     const closeButton = slideOver.querySelector('.slide-over-close');
-                    closeButton.addEventListener('click', () => {
-                        slideOver.classList.remove('visible');
-                        // Clear URL fragment when closing
-                        history.replaceState(null, '', window.location.pathname);
-                        setTimeout(() => slideOver.remove(), 150); // Match the faster slide-out
-                    });
-
-                    // Handle Escape key
                     const handleEscape = (e) => {
-                        if (e.key === 'Escape') {
-                            slideOver.classList.remove('visible');
-                            // Clear URL fragment when closing with Escape
-                            history.replaceState(null, '', window.location.pathname);
-                            setTimeout(() => slideOver.remove(), 150); // Match the faster slide-out
-                            document.removeEventListener('keydown', handleEscape);
-                        }
+                        if (e.key === 'Escape') closeSlideOver();
                     };
+                    const cleanupSlideOver = () => {
+                        document.removeEventListener('keydown', handleEscape);
+                        window.removeEventListener('resize', updateScrollIndicators);
+                    };
+                    const closeSlideOver = () => {
+                        cleanupSlideOver();
+                        slideOver.classList.remove('visible');
+                        history.replaceState(null, '', window.location.pathname);
+                        setTimeout(() => slideOver.remove(), 150);
+                    };
+                    closeButton.addEventListener('click', closeSlideOver);
                     document.addEventListener('keydown', handleEscape);
 
                     // Add to calendar container and trigger animation
@@ -930,6 +875,7 @@
 
                     // Update on resize
                     window.addEventListener('resize', updateScrollIndicators);
+                    slideOver.cleanup = cleanupSlideOver;
                 });
             }
 
@@ -942,15 +888,12 @@
                 const date = parseDateHash(fragment);
                 if (date) {
                     // Update calendar to show the correct month
-                    currentMonth = date.getMonth();
-                    currentYear = date.getFullYear();
-                    renderCalendar();
+                    currentMonth = date.getUTCMonth();
+                    currentYear = date.getUTCFullYear();
+                    await renderCalendar();
 
                     // Get all events for this day
-                    const dayEvents = events.filter(event => {
-                        const eventDate = createLocalDate(event.date);
-                        return eventDate.getTime() === date.getTime();
-                    });
+                    const dayEvents = getEventsForDate(date);
 
                     // Show the slide-over
                     showEventSlideOver(dayEvents, date);
@@ -962,18 +905,15 @@
                 if (!targetEvent) return;
 
                 // Get the event date
-                const eventDate = createLocalDate(targetEvent.date);
+                const eventDate = getEventDate(targetEvent);
                 
                 // Move the calendar
-                currentMonth = eventDate.getMonth();
-                currentYear = eventDate.getFullYear();
-                renderCalendar();
+                currentMonth = eventDate.getUTCMonth();
+                currentYear = eventDate.getUTCFullYear();
+                await renderCalendar();
                 
                 // Get all events for this day
-                const dayEvents = events.filter(event => {
-                    const eDate = createLocalDate(event.date);
-                    return eDate.getTime() === eventDate.getTime();
-                });
+                const dayEvents = getEventsForDate(eventDate);
 
                 // Show the slide-over
                 showEventSlideOver(dayEvents, eventDate).then(() => {
@@ -1038,7 +978,7 @@
             }
 
             // Initialize the page
-            initializePage();
+            await initializePage();
         }
 
         // Start initialization

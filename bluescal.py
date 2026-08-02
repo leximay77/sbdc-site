@@ -1,4 +1,4 @@
-from datetime import datetime, date, timedelta, timezone
+from datetime import datetime, date, timedelta
 from dateutil.relativedelta import relativedelta
 from hashlib import sha256
 from html import escape
@@ -17,11 +17,19 @@ from bs4 import BeautifulSoup
 CAL_URL = "https://calendar.google.com/calendar/ical/seattlebluesdancecollective%40gmail.com/public/basic.ics"
 CAL_FILE = "bluescal.ics"
 CAL_CACHE_TTL_SECONDS = 10 # don't refresh if refreshed in the last X seconds
+SEATTLE_TZ = ZoneInfo("America/Los_Angeles")
 
 MAPS_API_KEY = os.getenv("MAPS_API_KEY")
 
 EVENTS_DB = {}
+MONTH_EVENTS_DB = {}
 NEIGHBORHOODS_DB = {}
+
+
+def clear_event_caches():
+    global EVENTS_DB, MONTH_EVENTS_DB
+    EVENTS_DB = {}
+    MONTH_EVENTS_DB = {}
 
 def refresh():
     """ refreshes every 15mins (900s)
@@ -52,7 +60,11 @@ def read_events(calendar, month, year, logger=None):
                   key=lambda x: fix_datetime(x["DTSTART"]))
 
 def process_events(cal, month: int, year: int, do_cache=False, logger=None):
-    global EVENTS_DB
+    global EVENTS_DB, MONTH_EVENTS_DB
+    month_cache_key = (month, year)
+    if month_cache_key in MONTH_EVENTS_DB:
+        return MONTH_EVENTS_DB[month_cache_key]
+
     events = []
     for cal_event in read_events(cal, month, year, logger):
         uid_val = '|'.join([cal_event.get("UID", cal_event.get("SUMMARY", str(cal_event))), str(cal_event.get("RECURRENCE-ID", "")), str(cache_key(cal_event))])
@@ -123,6 +135,8 @@ def process_events(cal, month: int, year: int, do_cache=False, logger=None):
         if do_cache:
             EVENTS_DB[uid] = event
         events.append(event)
+
+    MONTH_EVENTS_DB[month_cache_key] = events
     return events
 
 
@@ -143,9 +157,9 @@ def fix_datetime(vddd):
     if type(dt) is date:
         dt = datetime.combine(dt, datetime.min.time())
     if not dt.tzinfo:
-        return dt.replace(tzinfo=timezone.utc).astimezone(ZoneInfo("America/Los_Angeles"))
+        return dt.replace(tzinfo=SEATTLE_TZ)
     else:
-        return dt.astimezone(ZoneInfo("America/Los_Angeles"))
+        return dt.astimezone(SEATTLE_TZ)
 
 def get_neighborhood(location: str, logger=None):
     if os.getenv("BLUESCAL_GMAPS_ENABLE", "0") != "1":
