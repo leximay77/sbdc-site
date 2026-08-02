@@ -21,29 +21,25 @@
     {% block head %}{% endblock %}
 </head>
 <body>
-    <div class="newsletter-banner">
-        <a href="https://mailchi.mp/631a7bba1bea/seattlebluesdancecollective" target="_blank" rel="noopener">
-            Monthly Newsletter →
+    <nav class="newsletter-banner" aria-label="External">
+        <a href=" https://www.zeffy.com/en-US/donation-form/donate-to-the-seattle-blues-dance-collective" target="_blank" rel="noopener">
+            Donate to SBDC
         </a>
-        | 
-        <a href="https://www.instagram.com/seattle.blues.dance.collective/" target="_blank" rel="noopener">
-            Instagram →
+        ·
+        <a href="https://www.zeffy.com/en-US/newsletter-form/sign-up-for-the-seattle-blues-monthly-newsletter" target="_blank" rel="noopener">
+            Newsletter
         </a>
-        |
-        <a href="https://discord.gg/4Y6m36ttWM" target="_blank" rel="noopener">
-            <b style="font-varient: small-caps">NEW!</b> Discord →
-        </a>
-    </div>
+    </nav>
     <!-- Menu -->
-    <button class="menu-toggle">
+    <button class="menu-toggle" aria-label="menu">
         <span></span>
         <span></span>
         <span></span>
     </button>
     <div class="menu-overlay"></div>
-    <div class="menu">
+    <nav class="menu" aria-label="Main">
         <div class="menu-header">
-            <img src="{{ url_for('static', filename='images/logo.jpg') }}" alt="Seattle Blues Dance Collective" class="menu-logo">
+            <img src="{{ url_for('static', filename='images/SBDC-letters-logo.png') }}" alt="Seattle Blues Dance Collective Logo" class="menu-logo">
         </div>
         <div class="menu-items">
             <a href="/" class="menu-item">Events</a>
@@ -53,19 +49,19 @@
             <a href="/history" class="menu-item">Blues Resources</a>
             <a href="/music" class="menu-item">Blues Music</a>
             <a href="https://www.instagram.com/seattle.blues.dance.collective/" target="_blank" rel="noopener" class="menu-item menu-social">
-                <img src="{{ url_for('static', filename='images/instagram-logo.png') }}" alt="Instagram">
+                <img src="{{ url_for('static', filename='images/instagram-logo.png') }}" alt="Instagram logo">
                 Instagram
             </a>
             <a href="https://discord.gg/4Y6m36ttWM" target="_blank" rel="noopener" class="menu-item menu-social">
-                <img src="{{ url_for('static', filename='images/discord-logo.png') }}" alt="Discord">
+                <img src="{{ url_for('static', filename='images/discord-logo.png') }}" alt="Discord logo">
                 Discord
             </a>
             <a href="https://calendar.google.com/calendar/u/0?cid=c2VhdHRsZWJsdWVzZGFuY2Vjb2xsZWN0aXZlQGdtYWlsLmNvbQ" target="_blank" rel="noopener" class="menu-item menu-social">
-                <img src="{{ url_for('static', filename='images/gcal-logo.png') }}" alt="Google Cal">
+                <img src="{{ url_for('static', filename='images/gcal-logo.png') }}" alt="Google Calendar logo">
                 Google Cal
             </a>
         </div>
-    </div>
+    </nav>
     {% with messages = get_flashed_messages() %}
     {% if messages %}
     <ul class=flashes>
@@ -77,12 +73,21 @@
     {% endwith %}
     <!-- Header -->
     <header>
-        <div class="header-image" onclick="window.location.href='/';">
-            <img src="{{ url_for('static', filename='images/logo.jpg') }}" alt="Seattle Blues Dance Collective">
+        <div class="header-image">
+            <a href="/" class="banner-logo">
+                <img src="{{ url_for('static', filename='images/SBDC-full-logo.png') }}" alt="Seattle Blues Dance Collective Logo" style="height: 100%;">
+            </a>
         </div>
     </header>
     <script src="{{ url_for('static', filename='js/menu.js') }}"></script>
     {% block content %}{% endblock %}
     {% block scripts %}{% endblock %}
+    {% if self.footer() %}
+    <footer class="footer">
+        <div class="container">
+            {% block footer %}{% endblock %}
+        </div>
+    </footer>
+    {% endif %}
 </body>
 </html>

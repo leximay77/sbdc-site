@@ -24,29 +24,21 @@
             flex: 1 1 100%;
         }
     }
-    h2 {
-        border-bottom: 2px solid var(--accent-color);
-        margin-bottom: 0.5em;
-    }
-    h3 {
-        margin-top: 0.5em;
-        margin-bottom: 0.5em;
-    }
 </style>
 {% endblock %}
 {% block content %}
-    <div class="container">
-        <h2>Blues Music</h2>
+    <main class="container">
+        <h1 class="heading-primary bold-underline">Blues Music</h1>
         <p>We've compiled some sample playlists of Blues music from various artists and eras. Blues was born in the 19th century, but new Blues music is still being created today!</p>
         <div class="music-container">
             <div class="music-item">
-                <h3>Spotify</h3>
+                <h2 class="heading-secondary" style="margin: 0.5rem 0">Spotify</h2>
                 <iframe src="https://open.spotify.com/embed/playlist/3AfOcDEH80lssVo4D3LwHj?si=VrT3vkBrTUKgEUqWzi2J4Q" width="300" height="380" frameborder="0" allowtransparency="true" allow="encrypted-media"></iframe>
             </div>
             <div class="music-item">
-                <h3>Apple Music</h3>
+                <h2 class="heading-secondary" style="margin: 0.5rem 0">Apple Music</h2>
                 <iframe allow="autoplay *; encrypted-media *;" frameborder="0" height="380" style="width:100%;max-width:660px;overflow:hidden;background:transparent;" sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-storage-access-by-user-activation allow-top-navigation-by-user-activation" src="https://embed.music.apple.com/us/playlist/blues-intro/pl.u-Ymb09WmhPbXDYx4"></iframe>
             </div>
         </div>
-    </div>
+    </main>
 {% endblock %}

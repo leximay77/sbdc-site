@@ -18,7 +18,8 @@
     <meta property="og:locale" content="en_US">
 {% endblock %}
 {% block content %}
-    <div class="container">
+    <main class="container">
+        <h1 class="visually-hidden">SBDC Events Calendar</h1>
         <div class="filters collapsed">
             <div class="filter-toggle">
                 <span class="filter-toggle-text">Filter Events</span>
@@ -44,7 +45,7 @@
         </div>
 
         <div class="events-section">
-            <div class="upcoming-events">
+            <div class="upcoming-events" tabindex="0">
                 <h2>Upcoming Events</h2>
             </div>
 
@@ -70,7 +71,11 @@
                 </div>
             </div>
         </div>
-    </div>
+    </main>
+{% endblock %}
+
+{% block footer %}
+    <p class="footer-text">© The Seattle Blues Dance Collective is a 501(c)(3) non-profit. Tax ID Number 41-5324679. You can contact us at coreteam@sbdc.dance.</p>
 {% endblock %}
 
 {% block scripts %}
