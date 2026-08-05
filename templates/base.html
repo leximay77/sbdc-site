@@ -1,9 +1,31 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" prefix="og: https://ogp.me/ns#">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Seattle Blues Dance Collective</title>
+    {% set metadata_title = og_title|default(page_title|default(site_name)) %}
+    {% set metadata_description = page_description|default(site_description) %}
+    {% set metadata_url = canonical_url|default(site_url ~ request.path) %}
+    <title>{{ page_title|default(site_name) }}</title>
+    <meta name="description" content="{{ metadata_description }}">
+    <link rel="canonical" href="{{ metadata_url }}">
+    <link rel="apple-touch-icon" href="{{ site_url }}/static/images/logo.jpg">
+    <meta property="og:title" content="{{ metadata_title }}">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ metadata_url }}">
+    <meta property="og:image" content="{{ social_image_url }}">
+    <meta property="og:image:secure_url" content="{{ social_image_url }}">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:width" content="1199">
+    <meta property="og:image:height" content="1200">
+    <meta property="og:image:alt" content="Seattle Blues Dance Collective logo">
+    <meta property="og:description" content="{{ metadata_description }}">
+    <meta property="og:site_name" content="{{ site_name }}">
+    <meta property="og:locale" content="en_US">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{{ metadata_title }}">
+    <meta name="twitter:description" content="{{ metadata_description }}">
+    <meta name="twitter:image" content="{{ social_image_url }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">

@@ -1,22 +1,4 @@
 {% extends 'base.html' %}
-{% block head %}
-    <!-- Basic Meta TODO: conditional on URL w/ event data
-    <title>Your Page Title</title>
-    <meta name="description" content="A short summary of your page content.">
-    -->
-
-    <!-- Open Graph (used by Discord, Facebook, Instagram, etc.)
-    <meta property="og:title" content="Your Website Title Here">
-    <meta property="og:description" content="A short description that shows in link previews.">
-    <meta property="og:image" content="https://yourwebsite.com/path/to/preview-image.jpg">
-    <meta property="og:url" content="https://yourwebsite.com/page-url">
-    <meta property="og:type" content="website">
-    -->
-
-    <!-- Optional: more detailed Open Graph -->
-    <meta property="og:site_name" content="Seattle Blues Dance Collective">
-    <meta property="og:locale" content="en_US">
-{% endblock %}
 {% block content %}
     <main class="container">
         <h1 class="visually-hidden">SBDC Events Calendar</h1>
@@ -60,6 +42,7 @@
         async function initialize() {
 
             const SEATTLE_TIME_ZONE = 'America/Los_Angeles';
+            const SHARED_EVENT = {{ shared_event|default(none)|tojson }};
             const seattleDateFormatter = new Intl.DateTimeFormat('en-US', {
                 timeZone: SEATTLE_TIME_ZONE,
                 weekday: 'long',
@@ -71,7 +54,7 @@
                 'July', 'August', 'September', 'October', 'November', 'December'
             ];
 
-            const currentDate = getSeattleDate();
+            const currentDate = SHARED_EVENT ? createLocalDate(SHARED_EVENT.date) : getSeattleDate();
             let currentMonth = currentDate.getUTCMonth();
             let currentYear = currentDate.getUTCFullYear();
             let events = [];
@@ -365,6 +348,40 @@
                 }
             }
 
+            function shareButtonMarkup() {
+                return `
+                    <button class="share-button" type="button" title="Copy event link" aria-label="Copy event link">
+                        <svg class="share-icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false">
+                            <rect x="8" y="8" width="11" height="11" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.75" />
+                            <path d="M16 8V6.5A1.5 1.5 0 0 0 14.5 5h-9A1.5 1.5 0 0 0 4 6.5v9A1.5 1.5 0 0 0 5.5 17H8" fill="none" stroke="currentColor" stroke-width="1.75" />
+                        </svg>
+                    </button>`;
+            }
+
+            function getEventShareUrl(event) {
+                const path = `/events/${encodeURIComponent(event.date)}/${encodeURIComponent(event.uid)}`;
+                return new URL(path, window.location.origin).href;
+            }
+
+            async function copyEventLink(button, event) {
+                try {
+                    await navigator.clipboard.writeText(getEventShareUrl(event));
+                    button.classList.add('copied');
+                    button.title = 'Copied';
+                    button.setAttribute('aria-label', 'Event link copied');
+                } catch (error) {
+                    console.error('Failed to copy event link:', error);
+                    button.classList.add('copy-failed');
+                    button.title = 'Copy failed';
+                }
+
+                setTimeout(() => {
+                    button.classList.remove('copied', 'copy-failed');
+                    button.title = 'Copy event link';
+                    button.setAttribute('aria-label', 'Copy event link');
+                }, 2000);
+            }
+
             // Helper function to create event card
             function createEventCard(event) {
                 const eventDate = getEventDate(event);
@@ -375,14 +392,21 @@
                 eventCard.style.cursor = 'pointer';
                 eventCard.innerHTML = `
                     <div class="event-date">${formattedDate}</div>
-                    <h3 class="event-title">${event.title}</h3>
+                    <div class="event-title-row">
+                        <h3 class="event-title">${event.title}</h3>
+                        ${shareButtonMarkup()}
+                    </div>
                     <div class="event-details">
                         <span>${event.time}</span>
                         <span>${event.location}</span>
                     </div>
                 `;
 
-                // Add click handler to open slide-over
+
+                eventCard.querySelector('.share-button').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    copyEventLink(e.currentTarget, event);
+                });
                 eventCard.addEventListener('click', () => {
                     // Update URL fragment with event UID
                     history.replaceState(null, '', `#event-${event.uid}`);
@@ -493,12 +517,7 @@
                                     <div class="event-card" data-uid="${event.uid}">
                                         <div class="event-title-row">
                                             <h3 class="event-title">${event.title}</h3>
-                                            <button class="share-button" title="Copy Link" aria-label="Copy event link">
-                                                <svg class="share-icon" viewBox="0 0 24 24" width="16" height="16">
-                                                    <path fill="currentColor" d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/>
-                                                </svg>
-                                                <span class="share-text">Copy Link</span>
-                                            </button>
+                                            ${shareButtonMarkup()}
                                         </div>
                                         <div class="event-details">
                                             <span>⏰ ${event.time}</span>
@@ -513,31 +532,12 @@
                         <div class="slide-over-scroll-indicator down"></div>
                     `;
 
-                    // Add event listeners for share buttons
                     slideOver.querySelectorAll('.share-button').forEach(button => {
-                        button.addEventListener('click', async (e) => {
-                            e.stopPropagation(); // Prevent event card click
-                            const eventCard = button.closest('.event-card');
-                            const eventUid = eventCard.getAttribute('data-uid');
-                            const url = `${window.location.origin}${window.location.pathname}#event-${eventUid}`;
-                            
-                            try {
-                                await navigator.clipboard.writeText(url);
-                                // Show feedback
-                                const originalText = button.querySelector('.share-text').textContent;
-                                button.querySelector('.share-text').textContent = 'Copied!';
-                                button.classList.add('copied');
-                                setTimeout(() => {
-                                    button.querySelector('.share-text').textContent = originalText;
-                                    button.classList.remove('copied');
-                                }, 2000);
-                            } catch (err) {
-                                console.error('Failed to copy:', err);
-                                button.querySelector('.share-text').textContent = 'Failed to copy';
-                                setTimeout(() => {
-                                    button.querySelector('.share-text').textContent = 'Copy Link';
-                                }, 2000);
-                            }
+                        const eventUid = button.closest('.event-card').getAttribute('data-uid');
+                        const event = sortedEvents.find(item => item.uid === eventUid);
+                        button.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            copyEventLink(button, event);
                         });
                     });
 
@@ -553,7 +553,7 @@
                     const closeSlideOver = () => {
                         cleanupSlideOver();
                         slideOver.classList.remove('visible');
-                        history.replaceState(null, '', window.location.pathname);
+                        history.replaceState(null, '', SHARED_EVENT ? '/' : window.location.pathname);
                         setTimeout(() => slideOver.remove(), 150);
                     };
                     closeButton.addEventListener('click', closeSlideOver);
@@ -615,7 +615,7 @@
             // Function to check URL fragment and show corresponding event or date
             async function loadUrlFragment() {
                 const fragment = window.location.hash.slice(1); // Remove the # symbol
-                if (!fragment) return;
+                if (!fragment && !SHARED_EVENT) return;
 
                 // Check if it's a date hash
                 const date = parseDateHash(fragment);
@@ -633,8 +633,8 @@
                     return;
                 }
 
-                // If not a date hash, check if it's an event UID
-                const targetEvent = events.find(event => `event-${event.uid}` === fragment);
+                const targetUid = fragment.startsWith('event-') ? fragment.slice(6) : SHARED_EVENT?.uid;
+                const targetEvent = events.find(event => event.uid === targetUid);
                 if (!targetEvent) return;
 
                 // Get the event date
