@@ -2,6 +2,10 @@
     background-color: var(--header-background);
 }
 
+.footer .container {
+    padding-block: 0.5rem;
+}
+
 .footer-text {
     color: var(--text-on-dark);
     text-wrap: pretty;

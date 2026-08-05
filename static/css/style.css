@@ -92,6 +92,10 @@ header {
     .container {
         padding: 1rem;
     }
+
+    .footer .container {
+        padding-block: 0.75rem;
+    }
 }
 
 html {
@@ -472,6 +476,7 @@ ul.flashes {
     gap: 0.5rem;
     justify-content: center;
     align-items: center;
+    z-index: 100;
 }
 
 .newsletter-banner a {
