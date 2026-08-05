@@ -26,11 +26,12 @@
     <meta name="twitter:title" content="{{ metadata_title }}">
     <meta name="twitter:description" content="{{ metadata_description }}">
     <meta name="twitter:image" content="{{ social_image_url }}">
+    <meta name="twitter:image:alt" content="Seattle Blues Dance Collective logo">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
-    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.png') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-VPSBVTZWXD"></script>
     <script>
@@ -44,7 +45,7 @@
 </head>
 <body>
     <nav class="newsletter-banner" aria-label="External">
-        <a href=" https://www.zeffy.com/en-US/donation-form/donate-to-the-seattle-blues-dance-collective" target="_blank" rel="noopener">
+        <a href="https://www.zeffy.com/en-US/donation-form/donate-to-the-seattle-blues-dance-collective" target="_blank" rel="noopener">
             Donate to SBDC
         </a>
         ·
@@ -53,13 +54,13 @@
         </a>
     </nav>
     <!-- Menu -->
-    <button class="menu-toggle" aria-label="menu">
+    <button class="menu-toggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="main-menu">
         <span></span>
         <span></span>
         <span></span>
     </button>
-    <div class="menu-overlay"></div>
-    <nav class="menu" aria-label="Main">
+    <div class="menu-overlay" aria-hidden="true"></div>
+    <nav class="menu" id="main-menu" aria-label="Main" aria-hidden="true">
         <div class="menu-header">
             <img src="{{ url_for('static', filename='images/SBDC-letters-logo.png') }}" alt="Seattle Blues Dance Collective Logo" class="menu-logo">
         </div>
@@ -85,20 +86,11 @@
             </a>
         </div>
     </nav>
-    {% with messages = get_flashed_messages() %}
-    {% if messages %}
-    <ul class=flashes>
-    {% for message in messages %}
-      <li>{{ message }}</li>
-    {% endfor %}
-    </ul>
-    {% endif %}
-    {% endwith %}
     <!-- Header -->
     <header>
         <div class="header-image">
             <a href="/" class="banner-logo">
-                <img src="{{ url_for('static', filename='images/SBDC-full-logo.png') }}" alt="Seattle Blues Dance Collective Logo" style="height: 100%;">
+                <img src="{{ url_for('static', filename='images/SBDC-full-logo.png') }}" alt="Seattle Blues Dance Collective Logo">
             </a>
         </div>
     </header>

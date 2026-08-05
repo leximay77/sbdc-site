@@ -13,12 +13,12 @@
         align-items: flex-start;
     }
     .event-content {
-        flex: 1;
-        min-width: 300px;
+        flex: 1 1 300px;
+        min-width: 0;
     }
     .event-media {
-        flex: 1;
-        min-width: 300px;
+        flex: 1 1 300px;
+        min-width: 0;
         max-width: 500px;
     }
     .event-image {
@@ -33,15 +33,22 @@
         }
         .event-media {
             max-width: 100%;
+            width: 100%;
         }
     }
     .recurring-event-link {
         text-decoration: none;
     }
     .recurring-event-link-icon {
-        width: 28px; /* Fixed width */
-        height: 28px; /* Fixed height to maintain aspect ratio */
-        object-fit: cover; /* Ensures the icon fills the container */
+        width: 28px;
+        height: 28px;
+        object-fit: cover;
+    }
+    .event-links {
+        margin-top: 1rem;
+    }
+    .dark-background {
+        background: black;
     }
 </style>
 {% endblock %}
@@ -61,8 +68,6 @@
                         music nights with local bands, and partners with local organizations supporting
                         Seattle's Black community.
                     </p>
-                    <p>
-                        <br />
                         <h3 class="heading-tertiary">Monthly on the third Friday</h3>
                         <ul class="event-list">
                             <li>All-levels drop-in lesson 8:30-9:30pm</li>
@@ -77,7 +82,6 @@
                                 </a>
                             </li>
                         </ul>
-                    </p>
                 </div>
                 <div class="event-media">
                     <img src="{{ url_for('static', filename='images/bug.jpg') }}" alt="Blues Underground" class="event-image">
@@ -91,8 +95,6 @@
                         recurring <a target="_blank" rel="noopener" href="https://www.reverieballroom.com/class-calendars">series classes</a>
                         before these socials, and then practice what you learn on the social floor!
                     </p>
-                    <p>
-                        <br />
                         <h3 class="heading-tertiary">Second and Fourth Wednesdays of each Month</h3>
                         <ul class="event-list">
                             <li>All-levels drop-in lesson 9-9:30pm</li>
@@ -108,9 +110,8 @@
                                 </a>
                             </li>
                         </ul>
-                    </p>
                 </div>
-                <div class="event-media" style="background: black">
+                <div class="event-media dark-background">
                     <img src="{{ url_for('static', filename='images/reverie.png') }}" alt="Reverie Ballroom" class="event-image">
                 </div>
             </li>
@@ -120,8 +121,6 @@
                     <p>Join us once a month for Hillman City Sway! Presented in partnership with Black &amp; Tan Hall and Blues Underground.
                         Featuring a swanky evening of local live music, DJ's and dance instructors.
                     </p>
-                    <p>
-                        <br />
                         <h3 class="heading-tertiary">Monthly on the fourth Thursday</h3>
                         <ul class="event-list">
                             <li>Mixer and all-levels drop-in lesson 8-9pm</li>
@@ -141,7 +140,6 @@
                                 </a>
                             </li>
                         </ul>
-                    </p>
                 </div>
                 <div class="event-media">
                     <img src="{{ url_for('static', filename='images/hillman.jpg') }}" alt="Hillman City Sway" class="event-image">
@@ -151,7 +149,7 @@
                 <div class="event-content">
                     <h2 class="heading-secondary light-underline"><i>What The Blues</i> @ Lowdown Ballroom in Capitol Hill</h2>
                     <br />
-                    <h3 class="heading-tertiary">Lesson Series & Drop-Ins</h3>
+                    <h3 class="heading-tertiary">Lesson Series &amp; Drop-Ins</h3>
                     <p>Our core weekly lesson timeslot is <b>Tuesdays 6:30-8:30pm, at the Lowdown Ballroom</b>. We will
                         either have drop-in lessons, or 4- or 5-weeks series, depending on the month. Cancellations or special events
                         occur occasionally, so make sure to check <a href="/">the calendar</a>!</p>
@@ -165,16 +163,15 @@
                     <p>If you're after a more tailored learning experience, we also offer private lessons. Our current rates are $90 - $125 / hr, sliding scale.
                         Please contact us to set up a time!
                     </p>
-                    <p>
-                        <br />
+                    <p class="event-links">
                         <a target="_blank" rel="noopener" href="https://www.whattheblues.dance">whattheblues.dance</a><br />
                         <a target="_blank" rel="noopener" href="https://maps.app.goo.gl/PYd6FokbwsofJyx98" class="recurring-event-link">
                             <img src="{{ url_for('static', filename='images/location.png') }}" alt="Location" class="recurring-event-link-icon" />
                         </a>
-                        <a target="_blank" rel="noopener" href="http://instagram.com/whattheblues_sea" class="recurring-event-link">
+                        <a target="_blank" rel="noopener" href="https://instagram.com/whattheblues_sea" class="recurring-event-link">
                             <img src="{{ url_for('static', filename='images/instagram-logo.png') }}" alt="Instagram" class="recurring-event-link-icon" />
                         </a>
-                        <a target="_blank" rel="noopener" href="mailto:dance@whattheblues.com" class="recurring-event-link">
+                        <a href="mailto:dance@whattheblues.com" class="recurring-event-link">
                             <img src="{{ url_for('static', filename='images/email.png') }}" alt="Email" class="recurring-event-link-icon" />
                         </a>
                     </p>

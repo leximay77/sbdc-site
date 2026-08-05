@@ -3,3 +3,7 @@ fly.toml
 __pycache__/
 .envrc
 .venv/
+*.ics
+.DS_Store
+.pytest_cache/
+*.py[cod]

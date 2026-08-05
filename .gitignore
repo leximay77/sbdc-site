@@ -1,4 +1,4 @@
 .DS_Store
-*.py[c|o]
+*.py[cod]
 __pycache__/
 *.ics

@@ -8,20 +8,18 @@ Informational website for Blues social dancing events in Seattle, WA
 
 The site was built with [Python 3.13](https://www.python.org/downloads/release/python-3133/), and dependencies are managed with [`uv`](https://docs.astral.sh/uv/).
 
-Once both `python3` and `uv` are installed:
+Once Python and `uv` are installed:
 
 ```sh
-$ uv venv .venv
-$ source .venv/bin/activate
-$ uv pip install -r pyproject.toml
+uv sync
 ```
 
 Then to run the web app under Flask locally:
 ```sh
-$ python app.py
+uv run python app.py
 ```
 
-And navigate to [http://localhost:5000](http://localhost:8080) in your browser.
+Navigate to [http://localhost:8080](http://localhost:8080) in your browser.
 
 ### Licenses
 

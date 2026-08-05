@@ -120,18 +120,30 @@
                 return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
             }
 
-            // Helper function to create a date hash for URL fragments
             function createDateHash(date) {
-                // Create a consistent hash for a date in YYYY-MM-DD format
                 return `date-${getDateKey(date)}`;
             }
 
-            // Helper function to parse a date hash from URL fragment
             function parseDateHash(hash) {
                 const match = hash.match(/^date-(\d{4})-(\d{2})-(\d{2})$/);
                 if (!match) return null;
-                const [_, year, month, day] = match;
-                return createSeattleDate(Number(year), Number(month) - 1, Number(day));
+                const [, yearText, monthText, dayText] = match;
+                const year = Number(yearText);
+                const month = Number(monthText);
+                const day = Number(dayText);
+                if (year < 1900 || year > 2100 || month < 1 || month > 12) return null;
+
+                const date = createSeattleDate(year, month - 1, day);
+                if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) {
+                    return null;
+                }
+                return date;
+            }
+
+            function escapeHtml(value) {
+                return String(value).replace(/[&<>"']/g, character => ({
+                    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+                })[character]);
             }
 
             function addDays(date, days) {
@@ -201,10 +213,10 @@
             }
 
             // Render calendar
-            async function renderCalendar({ reload = true } = {}) {
+            async function renderCalendar() {
                 const month = currentMonth;
                 const year = currentYear;
-                if (reload && !(await loadEvents(month, year))) return;
+                if (!(await loadEvents(month, year))) return;
 
                 const firstDay = createSeattleDate(year, month, 1);
                 const lastDay = createSeattleDate(year, month + 1, 0);
@@ -212,7 +224,7 @@
                 const startingDay = firstDay.getUTCDay();
                 const today = getSeattleDate();
 
-                monthYearDisplay.textContent = `${getMonthName(month)} ${year}`;
+                monthYearDisplay.textContent = `${MONTH_NAMES[month]} ${year}`;
 
                 while (calendarGrid.children.length > 7) {
                     calendarGrid.removeChild(calendarGrid.lastChild);
@@ -238,9 +250,22 @@
 
                     if (hasEvent) {
                         dayElement.style.cursor = 'pointer';
-                        dayElement.addEventListener('click', (e) => {
+                        dayElement.tabIndex = 0;
+                        dayElement.setAttribute('role', 'button');
+                        dayElement.setAttribute(
+                            'aria-label',
+                            `${formatSeattleDate(calendarDate)}, ${dayEvents.length} event${dayEvents.length === 1 ? '' : 's'}`
+                        );
+                        const openDay = () => {
                             history.replaceState(null, '', `#${createDateHash(calendarDate)}`);
-                            showEventSlideOver(dayEvents, calendarDate, e.target);
+                            showEventSlideOver(dayEvents, calendarDate);
+                        };
+                        dayElement.addEventListener('click', openDay);
+                        dayElement.addEventListener('keydown', event => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                                event.preventDefault();
+                                openDay();
+                            }
                         });
                     }
 
@@ -255,30 +280,41 @@
                 }
             }
 
-            // Get month name
-            function getMonthName(month) {
-                return MONTH_NAMES[month];
-            }
-
             function setupCalendarControls() {
                 const [prevButton, nextButton] = document.querySelectorAll('.calendar-controls button');
-                prevButton.addEventListener('click', () => {
-                    currentMonth--;
+                let changingMonth = false;
+                const changeMonth = async delta => {
+                    if (changingMonth) return;
+                    changingMonth = true;
+                    prevButton.disabled = true;
+                    nextButton.disabled = true;
+
+                    const previousMonth = currentMonth;
+                    const previousYear = currentYear;
+                    currentMonth += delta;
                     if (currentMonth < 0) {
                         currentMonth = 11;
                         currentYear--;
-                    }
-                    renderCalendar();
-                });
-
-                nextButton.addEventListener('click', () => {
-                    currentMonth++;
-                    if (currentMonth > 11) {
+                    } else if (currentMonth > 11) {
                         currentMonth = 0;
                         currentYear++;
                     }
-                    renderCalendar();
-                });
+
+                    try {
+                        await renderCalendar();
+                    } catch (error) {
+                        currentMonth = previousMonth;
+                        currentYear = previousYear;
+                        console.error('Failed to change calendar month:', error);
+                    } finally {
+                        changingMonth = false;
+                        prevButton.disabled = false;
+                        nextButton.disabled = false;
+                    }
+                };
+
+                prevButton.addEventListener('click', () => changeMonth(-1));
+                nextButton.addEventListener('click', () => changeMonth(1));
             }
 
             // Render upcoming events
@@ -299,7 +335,7 @@
 
                 const currentWeekEvents = events.filter(event => {
                     const eventDate = getEventDate(event);
-                    return eventDate >= today && eventDate >= currentWeekStart && eventDate <= currentWeekEnd;
+                    return eventDate >= today && eventDate <= currentWeekEnd;
                 });
 
                 const nextWeekEvents = events.filter(event => {
@@ -350,12 +386,7 @@
 
             function shareButtonMarkup() {
                 return `
-                    <button class="share-button" type="button" title="Copy event link" aria-label="Copy event link">
-                        <svg class="share-icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false">
-                            <rect x="8" y="8" width="11" height="11" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.75" />
-                            <path d="M16 8V6.5A1.5 1.5 0 0 0 14.5 5h-9A1.5 1.5 0 0 0 4 6.5v9A1.5 1.5 0 0 0 5.5 17H8" fill="none" stroke="currentColor" stroke-width="1.75" />
-                        </svg>
-                    </button>`;
+                    <button class="share-button" type="button" title="Copy event link" aria-label="Copy event link"></button>`;
             }
 
             function getEventShareUrl(event) {
@@ -365,6 +396,8 @@
 
             async function copyEventLink(button, event) {
                 try {
+                clearTimeout(button.copyResetTimer);
+                button.classList.remove('copied', 'copy-failed');
                     await navigator.clipboard.writeText(getEventShareUrl(event));
                     button.classList.add('copied');
                     button.title = 'Copied';
@@ -375,54 +408,59 @@
                     button.title = 'Copy failed';
                 }
 
-                setTimeout(() => {
+                button.copyResetTimer = setTimeout(() => {
                     button.classList.remove('copied', 'copy-failed');
                     button.title = 'Copy event link';
                     button.setAttribute('aria-label', 'Copy event link');
                 }, 2000);
             }
 
+            function scrollSlideOverToEvent(slideOver, eventUid, behavior = 'smooth') {
+                const targetEventCard = Array.from(slideOver?.querySelectorAll('[data-uid]') || []).find(
+                    card => card.dataset.uid === eventUid
+                );
+                const content = targetEventCard?.closest('.slide-over-content');
+                if (!targetEventCard || !content) return;
+
+                content.scrollTo({
+                    top: Math.max(0, targetEventCard.offsetTop - 16),
+                    behavior
+                });
+            }
+
             // Helper function to create event card
             function createEventCard(event) {
                 const eventDate = getEventDate(event);
                 const formattedDate = formatSeattleDate(eventDate);
+                const dayEvents = [...getEventsForDate(eventDate)];
                 
                 const eventCard = document.createElement('div');
                 eventCard.className = 'event-card';
                 eventCard.style.cursor = 'pointer';
+                eventCard.tabIndex = 0;
+                eventCard.setAttribute('role', 'button');
                 eventCard.innerHTML = `
                     <div class="event-date">${formattedDate}</div>
-                    <div class="event-title-row">
-                        <h3 class="event-title">${event.title}</h3>
-                        ${shareButtonMarkup()}
-                    </div>
+                    <h3 class="event-title">${escapeHtml(event.title)}</h3>
                     <div class="event-details">
-                        <span>${event.time}</span>
-                        <span>${event.location}</span>
+                        <span>${escapeHtml(event.time)}</span>
+                        <span>${escapeHtml(event.location)}</span>
                     </div>
                 `;
 
-
-                eventCard.querySelector('.share-button').addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    copyEventLink(e.currentTarget, event);
-                });
-                eventCard.addEventListener('click', () => {
-                    // Update URL fragment with event UID
+                const openEvent = () => {
                     history.replaceState(null, '', `#event-${event.uid}`);
-                    
-                    // Get all events for this day
-                    const dayEvents = getEventsForDate(eventDate);
-                    showEventSlideOver(dayEvents, eventDate, eventCard).then(() => {
-                        // Once the slide-over animation is complete, scroll to the event
-                        const slideOver = document.querySelector('.slide-over');
-                        const targetEventCard = Array.from(slideOver.querySelectorAll('.event-card')).find(card => 
-                            card.getAttribute('data-uid') === event.uid
-                        );
-                        if (targetEventCard) {
-                            targetEventCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                        }
+                    showEventSlideOver(dayEvents, eventDate).then(() => {
+                        scrollSlideOverToEvent(document.querySelector('.slide-over'), event.uid);
                     });
+                };
+
+                eventCard.addEventListener('click', openEvent);
+                eventCard.addEventListener('keydown', keyEvent => {
+                    if (keyEvent.key === 'Enter' || keyEvent.key === ' ') {
+                        keyEvent.preventDefault();
+                        openEvent();
+                    }
                 });
 
                 // Add hover functionality for non-mobile devices
@@ -454,42 +492,28 @@
                 return eventCard;
             }
 
-            // Show event slide-over
-            function showEventSlideOver(events, date, targetElement, isUpdate = false) {
-                const existingSlideOver = document.querySelector('.slide-over');
-                const isSameDay = existingSlideOver && 
-                    existingSlideOver.querySelector('.slide-over-title').textContent === formatSeattleDate(date);
+            function removeSlideOver(slideOver) {
+                slideOver.cleanup?.();
+                slideOver.remove();
+            }
 
-                // If it's the same day and we're not forcing an update, just return a resolved promise
-                if (isSameDay && !isUpdate) {
+            function showEventSlideOver(events, date) {
+                const existingSlideOver = document.querySelector('.slide-over');
+                const dateKey = getDateKey(date);
+                if (existingSlideOver?.dataset.date === dateKey && existingSlideOver.classList.contains('visible')) {
                     return Promise.resolve();
                 }
 
-                // If we have an existing slide-over and it's a different day, animate it out first
-                if (existingSlideOver && !isSameDay) {
-                    existingSlideOver.classList.remove('visible');
-                    return new Promise(resolve => {
-                        setTimeout(() => {
-                            existingSlideOver.cleanup?.();
-                            existingSlideOver.remove();
-                            createAndShowSlideOver(events, date, targetElement, isUpdate).then(resolve);
-                        }, 150); // Faster slide-out animation
-                    });
+                if (existingSlideOver) {
+                    removeSlideOver(existingSlideOver);
                 }
 
-                // If we have an existing slide-over and it's an update, remove it immediately
-                if (existingSlideOver && isUpdate) {
-                    existingSlideOver.cleanup?.();
-                    existingSlideOver.remove();
-                }
-
-                // Create and show the slide-over
-                return createAndShowSlideOver(events, date, targetElement, isUpdate);
+                return createAndShowSlideOver(events, date);
             }
 
-            // Helper function to create and show the slide-over
-            function createAndShowSlideOver(events, date, targetElement, isUpdate = false) {
+            function createAndShowSlideOver(events, date) {
                 return new Promise(resolve => {
+                    const previouslyFocused = document.activeElement;
                     // Sort events by start time
                     const sortedEvents = [...events].sort((a, b) => {
                         const timeA = parseEventStartMinutes(a.time) ?? -1;
@@ -504,24 +528,27 @@
                     
                     // Format date
                     const formattedDate = formatSeattleDate(date);
+                    slideOver.setAttribute('role', 'dialog');
+                    slideOver.setAttribute('aria-modal', 'true');
+                    slideOver.setAttribute('aria-label', `Events for ${formattedDate}`);
                     
                     // Create slide-over content
                     slideOver.innerHTML = `
                         <div class="slide-over-header">
                             <h2 class="slide-over-title">${formattedDate}</h2>
-                            <div class="slide-over-close">&times;</div>
+                            <button class="slide-over-close" type="button" aria-label="Close event details">&times;</button>
                         </div>
                         <div class="slide-over-content">
                             ${sortedEvents.map(event => {
                                 return `
                                     <div class="event-card" data-uid="${event.uid}">
                                         <div class="event-title-row">
-                                            <h3 class="event-title">${event.title}</h3>
+                                            <h3 class="event-title">${escapeHtml(event.title)}</h3>
                                             ${shareButtonMarkup()}
                                         </div>
                                         <div class="event-details">
-                                            <span>⏰ ${event.time}</span>
-                                            ${event.location != "" ? `<span>📍 <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}" target="_blank" rel="noopener">${event.location}</a></span>` : ''}
+                                            <span>⏰ ${escapeHtml(event.time)}</span>
+                                            ${event.location ? `<span>📍 <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}" target="_blank" rel="noopener">${escapeHtml(event.location)}</a></span>` : ''}
                                         </div>
                                         <div class="event-description">${event.description}</div>
                                     </div>
@@ -541,89 +568,97 @@
                         });
                     });
 
-
                     const closeButton = slideOver.querySelector('.slide-over-close');
-                    const handleEscape = (e) => {
-                        if (e.key === 'Escape') closeSlideOver();
+                    const handleKeydown = event => {
+                        if (event.key === 'Escape' && !document.querySelector('.menu.visible')) {
+                            event.stopPropagation();
+                            closeSlideOver();
+                            return;
+                        }
+                        if (event.key !== 'Tab') return;
+
+                        const focusable = Array.from(slideOver.querySelectorAll('button, a[href]'));
+                        if (focusable.length === 0) return;
+                        const first = focusable[0];
+                        const last = focusable[focusable.length - 1];
+                        if (event.shiftKey && document.activeElement === first) {
+                            event.preventDefault();
+                            last.focus();
+                        } else if (!event.shiftKey && document.activeElement === last) {
+                            event.preventDefault();
+                            first.focus();
+                        }
                     };
                     const cleanupSlideOver = () => {
-                        document.removeEventListener('keydown', handleEscape);
+                        document.removeEventListener('keydown', handleKeydown);
                         window.removeEventListener('resize', updateScrollIndicators);
                     };
                     const closeSlideOver = () => {
+                        if (slideOver.dataset.closing) return;
+                        slideOver.dataset.closing = 'true';
                         cleanupSlideOver();
                         slideOver.classList.remove('visible');
                         history.replaceState(null, '', SHARED_EVENT ? '/' : window.location.pathname);
-                        setTimeout(() => slideOver.remove(), 150);
+                        setTimeout(() => {
+                            slideOver.remove();
+                            if (previouslyFocused?.isConnected) {
+                                previouslyFocused.focus({ preventScroll: true });
+                            }
+                        }, 300);
                     };
                     closeButton.addEventListener('click', closeSlideOver);
-                    document.addEventListener('keydown', handleEscape);
+                    document.addEventListener('keydown', handleKeydown);
 
-                    // Add to calendar container and trigger animation
                     const calendar = document.querySelector('.calendar');
                     calendar.appendChild(slideOver);
-                    
-                    // Skip the animation when refreshing an open slide-over.
-                    if (isUpdate) {
-                        slideOver.classList.add('visible');
-                        resolve();
-                    } else {
-                        // Wait for the slide animation to complete before resolving
-                        slideOver.addEventListener('transitionend', () => resolve(), { once: true });
-                        requestAnimationFrame(() => {
-                            slideOver.classList.add('visible');
-                        });
-                    }
+                    closeButton.focus({ preventScroll: true });
 
-                    // Handle scroll indicators
+                    let transitionFinished = false;
+                    const finishTransition = () => {
+                        if (transitionFinished) return;
+                        transitionFinished = true;
+                        resolve();
+                    };
+                    slideOver.addEventListener('transitionend', event => {
+                        if (event.target === slideOver && event.propertyName === 'transform') {
+                            finishTransition();
+                        }
+                    });
+                    setTimeout(finishTransition, 350);
+                    requestAnimationFrame(() => slideOver.classList.add('visible'));
+
                     const content = slideOver.querySelector('.slide-over-content');
                     const upIndicator = slideOver.querySelector('.slide-over-scroll-indicator.up');
                     const downIndicator = slideOver.querySelector('.slide-over-scroll-indicator.down');
 
                     const updateScrollIndicators = () => {
                         const scrollTop = content.scrollTop;
-                        const scrollHeight = content.scrollHeight;
-                        const clientHeight = content.clientHeight;
-
-                        // Show up indicator if scrolled down
-                        if (scrollTop > 0) {
-                            upIndicator.style.opacity = '0.6';
-                        } else {
-                            upIndicator.style.opacity = '0';
-                        }
-
-                        // Show down indicator if there's more content below
-                        if (scrollTop + clientHeight < scrollHeight) {
-                            downIndicator.style.opacity = '0.6';
-                        } else {
-                            downIndicator.style.opacity = '0';
-                        }
+                        upIndicator.classList.toggle('visible', scrollTop > 0);
+                        downIndicator.classList.toggle(
+                            'visible',
+                            scrollTop + content.clientHeight < content.scrollHeight
+                        );
                     };
 
-                    // Initial check
                     updateScrollIndicators();
-
-                    // Update on scroll
                     content.addEventListener('scroll', updateScrollIndicators);
-
-                    // Update on resize
                     window.addEventListener('resize', updateScrollIndicators);
                     slideOver.cleanup = cleanupSlideOver;
                 });
             }
 
-            // Function to check URL fragment and show corresponding event or date
             async function loadUrlFragment() {
-                const fragment = window.location.hash.slice(1); // Remove the # symbol
+                const fragment = window.location.hash.slice(1);
                 if (!fragment && !SHARED_EVENT) return;
 
                 // Check if it's a date hash
                 const date = parseDateHash(fragment);
                 if (date) {
-                    // Update calendar to show the correct month
-                    currentMonth = date.getUTCMonth();
-                    currentYear = date.getUTCFullYear();
-                    await renderCalendar();
+                    if (currentMonth !== date.getUTCMonth() || currentYear !== date.getUTCFullYear()) {
+                        currentMonth = date.getUTCMonth();
+                        currentYear = date.getUTCFullYear();
+                        await renderCalendar();
+                    }
 
                     // Get all events for this day
                     const dayEvents = getEventsForDate(date);
@@ -637,27 +672,18 @@
                 const targetEvent = events.find(event => event.uid === targetUid);
                 if (!targetEvent) return;
 
-                // Get the event date
                 const eventDate = getEventDate(targetEvent);
+                if (currentMonth !== eventDate.getUTCMonth() || currentYear !== eventDate.getUTCFullYear()) {
+                    currentMonth = eventDate.getUTCMonth();
+                    currentYear = eventDate.getUTCFullYear();
+                    await renderCalendar();
+                }
                 
-                // Move the calendar
-                currentMonth = eventDate.getUTCMonth();
-                currentYear = eventDate.getUTCFullYear();
-                await renderCalendar();
-                
-                // Get all events for this day
                 const dayEvents = getEventsForDate(eventDate);
 
                 // Show the slide-over
                 showEventSlideOver(dayEvents, eventDate).then(() => {
-                    // Find and scroll to the target event
-                    const slideOver = document.querySelector('.slide-over');
-                    if (slideOver) {
-                        const targetEventCard = slideOver.querySelector(`[data-uid="${targetEvent.uid}"]`);
-                        if (targetEventCard) {
-                            targetEventCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                        }
-                    }
+                    scrollSlideOverToEvent(document.querySelector('.slide-over'), targetEvent.uid, 'auto');
                 });
             }
 

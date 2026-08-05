@@ -1,7 +1,7 @@
 
 .menu-toggle {
     position: fixed;
-    top: calc(1rem + 36px); /* 36px accounts for newsletter banner height (8px padding * 2 + line height) */
+    top: calc(1rem + var(--newsletter-height));
     left: 1rem;
     z-index: 1000;
     background: none;
@@ -52,7 +52,8 @@
     height: 100%;
     background-color: white;
     z-index: 1000;
-    transition: left 0.3s ease;
+    visibility: hidden;
+    transition: left 0.3s ease, visibility 0s linear 0.3s;
     padding: 2rem 1.5rem;
     box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
     display: flex;
@@ -62,6 +63,8 @@
 
 .menu.visible {
     left: 0;
+    visibility: visible;
+    transition-delay: 0s;
 }
 
 .menu-header {
@@ -71,7 +74,6 @@
     display: flex;
     justify-content: center;
     width: 100%;
-    box-sizing: border-box;
 }
 
 .menu-logo {
@@ -79,15 +81,8 @@
     width: 100%;
     max-width: 100%;
     object-fit: contain;
-    box-sizing: border-box;
 }
 
-.menu-title {
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: var(--primary-color);
-    margin-bottom: 0.75rem;
-}
 
 .menu-social {
     display: flex;
@@ -98,9 +93,8 @@
 }
 
 .menu-social img {
-    width: 4rem;
+    width: 2rem;
     object-fit: contain;
-    max-inline-size: 2rem;
 }
 
 .menu-items {
@@ -137,12 +131,14 @@
     transition: width 0.3s ease;
 }
 
-.menu-item:hover {
+.menu-item:hover,
+.menu-item:focus-visible {
     color: var(--accent-color);
     transform: translateX(4px);
 }
 
-.menu-item:hover::after {
+.menu-item:hover::after,
+.menu-item:focus-visible::after {
     width: 100%;
 }
 

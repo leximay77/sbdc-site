@@ -1,7 +1,7 @@
 [project]
 name = "blues-underground"
 version = "0.1.0"
-description = "Add your description here"
+description = "Seattle Blues Dance Collective website"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [

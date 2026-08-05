@@ -4,7 +4,6 @@
     min-height: 400px;
     overflow: hidden;
     width: 100%;
-    box-sizing: border-box;
 }
 
 .calendar-header {
@@ -54,7 +53,6 @@
 
 .calendar-controls button:hover {
     background-color: #e9ecef;
-    border-color: var(--border-color);
 }
 
 .calendar-controls button:hover::before {
@@ -67,13 +65,14 @@
     grid-template-columns: repeat(7, 1fr);
     gap: 0.25rem;
     width: 100%;
-    box-sizing: border-box;
     min-width: 0;
 }
 
 @media (max-width: 768px) {
+
     .calendar {
         min-height: 0;
+        overflow-x: hidden;
     }
 
     .calendar-header {
@@ -108,10 +107,6 @@
         font-size: 0.65rem;
         min-width: 0;
     }
-    
-    .calendar {
-        overflow-x: hidden;
-    }
 }
 
 .calendar-day {
@@ -124,7 +119,6 @@
     justify-content: center;
     transition: var(--transition);
     width: 100%;
-    box-sizing: border-box;
     font-size: 0.9rem;
 }
 
@@ -138,17 +132,16 @@
     box-shadow: var(--shadow-sm);
 }
 
+
+.calendar-day[role="button"]:focus-visible {
+    outline: 2px solid var(--accent-dark);
+    outline-offset: 2px;
+}
 /* Event States */
 .calendar-day.has-event {
     background-color: var(--accent-color);
     color: var(--text-on-dark);
     border-color: var(--accent-color);
-}
-
-.calendar-day.has-event.past {
-    background-color: #e0e0e0;
-    color: #636363;
-    border-color: #d0d0d0;
 }
 
 .calendar-day.has-event.inactive {
@@ -168,19 +161,9 @@
 }
 
 .calendar-day.highlight {
-    background-color: rgba(var(--accent-color-rgb), 0.15);
+    background-color: #dce8f3;
     color: var(--text-color);
     border-radius: 50%;
-}
-
-.calendar-day.hover-highlight {
-    background-color: rgba(var(--accent-color-rgb), 0.15);
-    border-radius: 50%;
-}
-
-.calendar-day.highlight.past {
-    background-color: rgba(255, 193, 7, 0.3);
-    color: #856404;
 }
 
 .calendar-day-header {
@@ -193,4 +176,24 @@
     padding: 0.5rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+}
+
+@media (min-width: 769px) and (max-height: 1100px) {
+    .calendar {
+        min-height: 0;
+    }
+
+    .calendar-header {
+        margin-bottom: 0.75rem;
+    }
+
+    .calendar-day {
+        aspect-ratio: auto;
+        min-height: clamp(48px, 7vh, 64px);
+        padding: 0.35rem;
+    }
+
+    .calendar-day-header {
+        padding: 0.25rem;
+    }
 }

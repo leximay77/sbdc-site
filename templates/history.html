@@ -18,6 +18,11 @@
         color: var(--accent-color);
     }
 
+    .resource-list.nested {
+        margin-top: 0.5rem;
+        padding-left: 1.5rem;
+    }
+
     .book-list {
         list-style: disc;
         padding-left: 1.5rem;
@@ -48,7 +53,7 @@
         border: 1px solid var(--accent-color);
     }
 
-    .video-item h2 {
+    .video-item .heading-secondary {
         margin-top: 0;
         margin-bottom: 1rem;
     }
@@ -66,8 +71,8 @@
     <main class="container">
         <h1 class="heading-primary bold-underline">Blues Resources &amp; History</h1>
         <p>Blues or “blues-idiom” dancing is a collection of dances and movements that grew out of the African-American / Black community
-            and were danced to blues music. As blues music can trace it's origins to the American South, these dances follow the same lineage.
-            Various styles grew depending on the area one grew up in and matched the music that predominately played in a region. 
+            and were danced to blues music. As blues music can trace its origins to the American South, these dances follow the same lineage.
+            Various styles grew depending on the area one grew up in and matched the music that predominantly played in a region.
             <a href="https://bluesdancenashville.org/what-is-blues-dancing/" target="_blank" rel="noopener">[Source]</a>
         </p>
         <br />
@@ -87,8 +92,8 @@
                 </li>
                 <li>
                     <a href="https://damonstone.com/blog/" target="_blank" rel="noopener"><strong>Damon Stone's Blog</strong></a>
-                    <ul class="resource-list" style="padding-left: 1.5rem; margin-top: 0.5rem;">
-                        <li>Insights from an internationally renowned blues dance instructor (<a href="https://damonstone.com/interview/" target="_blank">Interview with Damon Stone</a>)</li>
+                    <ul class="resource-list nested">
+                        <li>Insights from an internationally renowned blues dance instructor (<a href="https://damonstone.com/interview/" target="_blank" rel="noopener">Interview with Damon Stone</a>)</li>
                     </ul>
                 </li>
                 <li>
@@ -119,7 +124,7 @@
             <h2 class="heading-secondary light-underline">Recommended Reading</h2>
             <p class="section-note">While the original Blues and Jazz Book Club is no longer active, these books offer valuable perspectives on blues music, dance, and African American cultural history. The reading list includes works recommended by blues dance organizers worldwide.</p>
             
-            <h2 class="heading-secondary light-underline">Core List</h2>
+            <h3 class="heading-secondary light-underline">Core List</h3>
             <ul class="book-list">
                 <li><em>The New Jim Crow: Mass Incarceration in the Age of Colorblindness</em> by Michelle Alexander</li>
                 <li><em>The Devil's Music: A History of the Blues</em> by Giles Oakley</li>
@@ -128,7 +133,7 @@
                 <li><em>Corregidora</em> by Gayl Jones</li>
             </ul>
 
-            <h2 class="heading-secondary light-underline">Additional Recommendations</h2>
+            <h3 class="heading-secondary light-underline">Additional Recommendations</h3>
             <ul class="book-list">
                 <li>
                     <em>Blues Legacies and Black Feminism</em> by Angela Davis
@@ -151,16 +156,16 @@
             
             <div class="video-grid">
                 <div class="video-item">
-                    <h2 class="heading-secondary light-underline">Ballroomin' Blues</h2>
+                    <h3 class="heading-secondary light-underline">Ballroomin' Blues</h3>
                     <ul class="resource-list">
                         <li><a href="https://youtu.be/zvFNzcduNB8" target="_blank" rel="noopener"><strong>The Strut</strong></a></li>
                         <li><a href="https://youtu.be/6WNID3KSPrA" target="_blank" rel="noopener"><strong>The Stride</strong></a></li>
                         <li><a href="https://youtu.be/IRDJfmNjXUc" target="_blank" rel="noopener"><strong>Slow Drag</strong></a></li>
-                        <li><a href="https://www.youtube.com/watch?v=Y_aP7Sdtouw&list=PLhKoC1sp7gYMeNp_733LPUKHdh_gAV3uF&index=3" target="_blank" rel="noopener"><strong>Fun Ballroomin' Demo</strong></a></li>
+                        <li><a href="https://www.youtube.com/watch?v=Y_aP7Sdtouw&amp;list=PLhKoC1sp7gYMeNp_733LPUKHdh_gAV3uF&amp;index=3" target="_blank" rel="noopener"><strong>Fun Ballroomin' Demo</strong></a></li>
                     </ul>
                 </div>
                 <div class="video-item">
-                    <h2 class="heading-secondary light-underline">Jookin' Blues</h2>
+                    <h3 class="heading-secondary light-underline">Jookin' Blues</h3>
                     <ul class="resource-list">
                         <li><a href="https://youtu.be/e0O25_Ci21o" target="_blank" rel="noopener"><strong>Struttin'</strong></a></li>
                         <li><a href="https://youtu.be/K4PPW6WIlBc" target="_blank" rel="noopener"><strong>Texas Shuffle</strong></a></li>

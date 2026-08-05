@@ -1,76 +1,143 @@
-from datetime import datetime, date, timedelta
-from dateutil.relativedelta import relativedelta
+from datetime import date, datetime
 from hashlib import sha256
-from html import escape
-from html.parser import HTMLParser
 import os
 import re
+import tempfile
 import time
-from typing import Tuple
+from threading import RLock
+from urllib.parse import urlparse
 from zoneinfo import ZoneInfo
 
 import icalendar as ical
 import recurring_ical_events
 import requests
 from bs4 import BeautifulSoup
+from dateutil.relativedelta import relativedelta
 
 CAL_URL = "https://calendar.google.com/calendar/ical/seattlebluesdancecollective%40gmail.com/public/basic.ics"
 CAL_FILE = "bluescal.ics"
-CAL_CACHE_TTL_SECONDS = 10 # don't refresh if refreshed in the last X seconds
+CAL_CACHE_TTL_SECONDS = 10
+CAL_MAX_BYTES = 64 * 1024 * 1024
+CAL_REQUEST_TIMEOUT = (5, 20)
 SEATTLE_TZ = ZoneInfo("America/Los_Angeles")
 
-EVENTS_DB = {}
 MONTH_EVENTS_DB = {}
+CACHE_LOCK = RLock()
+MAX_CACHED_MONTHS = 24
+
+ALLOWED_DESCRIPTION_TAGS = {
+    "a", "b", "blockquote", "br", "code", "div", "em", "h2", "h3", "h4", "hr", "i",
+    "li", "ol", "p", "pre", "small", "span", "strong", "sub", "sup", "time", "u", "ul",
+    "wbr",
+}
+ALLOWED_LINK_SCHEMES = {"http", "https", "mailto"}
+URL_PATTERN = re.compile(r'(?<![="\'])(https?://[^\s<>"\']+)(?![="\'])')
 
 
 def clear_event_caches():
-    global EVENTS_DB, MONTH_EVENTS_DB
-    EVENTS_DB = {}
-    MONTH_EVENTS_DB = {}
+    with CACHE_LOCK:
+        MONTH_EVENTS_DB.clear()
+
+
+def read_cached_calendar():
+    with open(CAL_FILE, "rb") as calendar_file:
+        return ical.Calendar.from_ical(calendar_file.read())
+
+
+def write_cached_calendar(calendar_data):
+    cache_directory = os.path.dirname(os.path.abspath(CAL_FILE))
+    with tempfile.NamedTemporaryFile(dir=cache_directory, delete=False) as temporary_file:
+        temporary_file.write(calendar_data)
+        temporary_path = temporary_file.name
+    os.replace(temporary_path, CAL_FILE)
 
 def refresh():
-    """ refreshes every 15mins (900s)
-        if an error occurs, retries in 1min
-        if refreshed in the last TTL sec, use the local file, else fetch
-        steady state: refreshing from server every 15min, parsing & caching on-demand
-    """
-    if os.path.exists(CAL_FILE) and os.path.getmtime(CAL_FILE) > time.time() - CAL_CACHE_TTL_SECONDS:
-        with open(CAL_FILE, 'r') as f:
-            cal_data = f.read()
-    else:
-        response = requests.get(CAL_URL)
-        if response.status_code == 200 and len(response.text) > 0 and len(response.text) < 1_048_576 * 64: # 64 MiB
-            cal_data = response.text
-            with open(CAL_FILE, 'w') as f:
-                f.write(cal_data)
-        else:
-            raise ValueError(f"Bad response from {CAL_URL}")
-    return ical.Calendar.from_ical(cal_data)
+    cache_is_fresh = (
+        os.path.exists(CAL_FILE)
+        and os.path.getmtime(CAL_FILE) > time.time() - CAL_CACHE_TTL_SECONDS
+    )
+    if cache_is_fresh:
+        try:
+            return read_cached_calendar()
+        except (OSError, ValueError):
+            pass
 
-def read_events(calendar, month, year, logger=None):
-    month_start = fix_datetime(datetime(year, month, 1)).replace(hour=0, minute=0, second=0, microsecond=0)
-    month_end = fix_datetime(month_start + relativedelta(months=2)).replace(hour=0, minute=0, second=0, microsecond=0)
-    return sorted(filter(lambda x: x.get("DTSTART"), recurring_ical_events.of(calendar).between(month_start, month_end)),
-                  key=lambda x: fix_datetime(x["DTSTART"]))
+    try:
+        response = requests.get(CAL_URL, timeout=CAL_REQUEST_TIMEOUT)
+        response.raise_for_status()
+        calendar_data = response.content
+        if not 0 < len(calendar_data) <= CAL_MAX_BYTES:
+            raise ValueError(f"Calendar response has invalid size: {len(calendar_data)} bytes")
+        calendar = ical.Calendar.from_ical(calendar_data)
+        write_cached_calendar(calendar_data)
+        return calendar
+    except (OSError, requests.RequestException, ValueError):
+        if os.path.exists(CAL_FILE):
+            return read_cached_calendar()
+        raise
 
-def process_events(cal, month: int, year: int, do_cache=False, logger=None):
-    global EVENTS_DB, MONTH_EVENTS_DB
-    month_cache_key = (month, year)
-    if month_cache_key in MONTH_EVENTS_DB:
-        return MONTH_EVENTS_DB[month_cache_key]
+def read_events(calendar, month, year):
+    month_start = fix_datetime(datetime(year, month, 1))
+    month_end = month_start + relativedelta(months=2)
+    events = recurring_ical_events.of(calendar).between(month_start, month_end)
+    return sorted(
+        (event for event in events if event.get("DTSTART")),
+        key=lambda event: fix_datetime(event["DTSTART"]),
+    )
 
-    events = []
-    for cal_event in read_events(cal, month, year, logger):
-        uid_val = '|'.join([cal_event.get("UID", cal_event.get("SUMMARY", str(cal_event))), str(cal_event.get("RECURRENCE-ID", "")), str(cache_key(cal_event))])
-        uid = sha256(str(uid_val).encode("utf-8")).hexdigest()
-        # already in cache
-        if EVENTS_DB.get(uid):
-            events.append(EVENTS_DB[uid])
+
+def sanitize_description(description):
+    soup = BeautifulSoup(description, "html.parser")
+
+    for tag in soup.find_all(["iframe", "object", "script", "style"]):
+        tag.decompose()
+
+    for text_node in list(soup.find_all(string=URL_PATTERN)):
+        if text_node.parent.name == "a":
+            continue
+        linked_text = URL_PATTERN.sub(r'<a href="\1">\1</a>', str(text_node))
+        replacement = BeautifulSoup(linked_text, "html.parser")
+        text_node.replace_with(*replacement.contents)
+
+    for tag in list(soup.find_all(True)):
+        if tag.name not in ALLOWED_DESCRIPTION_TAGS:
+            tag.unwrap()
             continue
 
-        event = {"uid": uid, "title": cal_event.get("SUMMARY", "")}
+        if tag.name != "a":
+            tag.attrs = {}
+            continue
 
-        # Parse the iCalendar date strings into datetime objects
+        href = tag.get("href", "").strip()
+        if urlparse(href).scheme.lower() not in ALLOWED_LINK_SCHEMES:
+            tag.unwrap()
+            continue
+
+        tag.attrs = {"href": href, "rel": "noopener", "target": "_blank"}
+        if len(tag.text) > 40 and tag.text == href and "@" not in tag.text:
+            tag.string = f"{tag.text[:40]}[...]"
+
+    return str(soup)
+
+
+def process_events(cal, month: int, year: int):
+    month_cache_key = (id(cal), month, year)
+    with CACHE_LOCK:
+        cached_events = MONTH_EVENTS_DB.pop(month_cache_key, None)
+        if cached_events is not None:
+            MONTH_EVENTS_DB[month_cache_key] = cached_events
+            return cached_events
+
+    events = []
+    for cal_event in read_events(cal, month, year):
+        uid_val = "|".join([
+            str(cal_event.get("UID", cal_event.get("SUMMARY", str(cal_event)))),
+            str(cal_event.get("RECURRENCE-ID", "")),
+            cache_key(cal_event),
+        ])
+        uid = sha256(str(uid_val).encode("utf-8")).hexdigest()
+
+        event = {"uid": uid, "title": str(cal_event.get("SUMMARY", ""))}
         local_start = fix_datetime(cal_event["DTSTART"])
         local_end = fix_datetime(cal_event.get("DTEND", local_start))
         event["date"] = local_start.strftime("%Y-%m-%d")
@@ -85,50 +152,34 @@ def process_events(cal, month: int, year: int, do_cache=False, logger=None):
         except AttributeError:
             event["time"] = "All Day"
 
-        event["location"] = cal_event.get("LOCATION", "")
+        event["location"] = str(cal_event.get("LOCATION", ""))
 
-        description = str(cal_event.get("DESCRIPTION", ""))
-        try:
-            # Convert plain text URLs to links
-            url_pattern = re.compile(r'(?<![="\'])(https?://[^\s<>"\']+)(?![="\'])')
-            description = url_pattern.sub(r'<a href="\1">\1</a>', description)
-            soup = BeautifulSoup(description, 'html.parser')
-            for link in soup.find_all('a'):
-                link['target'] = '_blank'
-                link['rel'] = 'noopener'
-                if len(link.text) > 40 and link.text == link.get("href", "") and not '@' in link.text:
-                    link.string = link.text[:40] + '[...]'
-            event["description"] = str(soup)
-        except HTMLParser.HTMLParseError as e:
-            if logger:
-                logger.error("HTML parsing error: %s", e)
-            # If parsing fails, use the original description
-            event["description"] = escape(description)
-        if do_cache:
-            EVENTS_DB[uid] = event
+        event["description"] = sanitize_description(str(cal_event.get("DESCRIPTION", "")))
         events.append(event)
 
-    MONTH_EVENTS_DB[month_cache_key] = events
+    with CACHE_LOCK:
+        if len(MONTH_EVENTS_DB) >= MAX_CACHED_MONTHS:
+            MONTH_EVENTS_DB.pop(next(iter(MONTH_EVENTS_DB)))
+        MONTH_EVENTS_DB[month_cache_key] = events
     return events
 
 
 def cache_key(cal_event):
-        return '|'.join([
-            str(fix_datetime(cal_event["DTSTART"])),
-            str(fix_datetime(cal_event.get("DTEND", ""))),
-            str(cal_event.get("LOCATION", "")),
-            str(cal_event.get("SUMMARY", "")),
-            str(cal_event.get("DESCRIPTION", ""))
-        ])
+    return "|".join([
+        str(fix_datetime(cal_event["DTSTART"])),
+        str(fix_datetime(cal_event.get("DTEND", cal_event["DTSTART"]))),
+        str(cal_event.get("LOCATION", "")),
+        str(cal_event.get("SUMMARY", "")),
+        str(cal_event.get("DESCRIPTION", "")),
+    ])
 
-def fix_datetime(vddd):
-    if type(vddd) is ical.prop.vDDDTypes:
-        dt = vddd.dt
+def fix_datetime(value):
+    if isinstance(value, ical.prop.vDDDTypes):
+        dt = value.dt
     else:
-        dt = vddd # either a date or a datetime
-    if type(dt) is date:
+        dt = value
+    if isinstance(dt, date) and not isinstance(dt, datetime):
         dt = datetime.combine(dt, datetime.min.time())
-    if not dt.tzinfo:
+    if dt.tzinfo is None:
         return dt.replace(tzinfo=SEATTLE_TZ)
-    else:
-        return dt.astimezone(SEATTLE_TZ)
+    return dt.astimezone(SEATTLE_TZ)

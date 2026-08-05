@@ -1,15 +1,6 @@
 {% extends 'base.html' %}
 {% block head %}
 <style>
-    h2 {
-        border-bottom: 2px solid var(--accent-color);
-        margin-bottom: 1em;
-    }
-    h3 {
-        margin-bottom: 0.5em;
-        border-bottom: 1px solid var(--accent-color);
-        width: 100%;
-    }
     .instructor-list {
         list-style-type: none;
         padding: 0;
@@ -28,8 +19,8 @@
         align-items: flex-start;
     }
     .instructor-bio {
-        flex: 1;
-        min-width: 300px;
+        flex: 1 1 300px;
+        min-width: 0;
     }
     .instructor-media {
         flex: 0.8;
@@ -47,14 +38,12 @@
     .instructor-socials {
         margin-top: 1rem;
     }
-    .instructor-socials a {
+    .instructor-socials a,
+    .instructor-contact a {
         color: var(--accent-color);
     }
     .instructor-contact {
         margin-top: 1rem;
-    }
-    .instructor-contact a {
-        color: var(--accent-color);
     }
     @media (max-width: 768px) {
         .instructor-content {
@@ -62,6 +51,7 @@
         }
         .instructor-media {
             max-width: 100%;
+            width: 100%;
         }
     }
 </style>
@@ -142,7 +132,7 @@
                             dance theory and helping others find what they love about dance.</p>
                     </div>
                     <div class="instructor-media">
-                        <img src="{{ url_for('static', filename='images/instructors/dillon.jpg') }}" alt="Dillon Arevalo" aria-describedy="dillon-photo-credit" class="instructor-image">
+                        <img src="{{ url_for('static', filename='images/instructors/Dillon.jpg') }}" alt="Dillon Arevalo" aria-describedby="dillon-photo-credit" class="instructor-image">
                         <p id="dillon-photo-credit">Photo credit: <a href="https://devonrowland.com/">Devon Rowland Photography</a></p>
                     </div>
                 </div>
